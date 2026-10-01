@@ -195,7 +195,7 @@
 
     const shape = trackShapes[t.name];
     const outlineHtml = shape ?
-      '<div class="track-outline"><svg viewBox="0 0 200 100" aria-hidden="true"><path d="' + shape.path + '"/></svg></div>' :
+      '<div class="track-outline"><svg viewBox="' + shape.viewBox + '" aria-hidden="true">' + shape.markup + '</svg></div>' :
       '<div class="track-outline track-outline-missing">No outline on record for this track yet</div>';
 
     detailContent.innerHTML =
