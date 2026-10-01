@@ -26,20 +26,28 @@
 </header>
 
 <div id="view-map-page">
-  <div class="map-layout">
-    <aside class="track-list-panel">
+  <div class="map-layout" id="mapLayout">
+    <aside class="track-list-panel" id="trackListPanel">
       <div class="panel-head">
         <h2>Tracks</h2>
         <input type="search" id="trackSearch" placeholder="Search by name or city&hellip;" aria-label="Search tracks">
       </div>
       <div class="track-list" id="trackList"></div>
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse track list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
     </aside>
     <div class="map-wrap">
-      <svg id="usMap" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the United States with a pin for every NASCAR Cup Series track"></svg>
-      <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a pin</div>
-      <div class="map-legend"><strong>Pin size</strong>Races hosted at that track</div>
+      <svg id="usMap" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the United States with a marker for every NASCAR Cup Series track"></svg>
+      <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a track</div>
+      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Zoom in on a cluster to spread markers apart and reveal names.</div>
       <aside class="detail-panel" id="detailPanel" hidden>
-        <button class="close-detail" id="closeDetail" aria-label="Close">&times;</button>
+        <div class="detail-panel-actions">
+          <button id="expandDetail" type="button" aria-label="Expand to full page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+          <button id="closeDetail" type="button" aria-label="Close">&times;</button>
+        </div>
         <div id="detailContent"></div>
       </aside>
     </div>
@@ -68,50 +76,121 @@
     .attr('class', 'state').attr('d', path);
 
   const maxRaces = d3.max(tracks, t => t.numRaces);
-  const rScale = d3.scaleSqrt().domain([1, maxRaces]).range([2.6, 15]);
+  // marker WIDTH by race count (sqrt scale for perceptual area); height is a
+  // fixed fraction of width, giving a small "track oval" (stadium) shape.
+  const wScale = d3.scaleSqrt().domain([1, maxRaces]).range([7, 30]);
+  const hRatio = 0.42;
 
   const pinsG = zoomLayer.append('g').attr('class', 'pins');
-  const pins = pinsG.selectAll('circle').data(tracks).join('circle')
-    .attr('class', 'pin')
+  const pinGroups = pinsG.selectAll('g').data(tracks).join('g')
+    .attr('class', 'pin-group')
     .attr('tabindex', 0)
     .attr('role', 'button')
     .attr('aria-label', t => t.name + ', ' + t.numRaces + ' races')
-    .attr('transform', t => {
-      const p = projection([t.lon, t.lat]);
-      return p ? 'translate(' + p[0] + ',' + p[1] + ')' : 'translate(-100,-100)';
-    })
-    .attr('r', t => rScale(t.numRaces))
+    .attr('data-x', t => (projection([t.lon, t.lat]) || [-1000, -1000])[0])
+    .attr('data-y', t => (projection([t.lon, t.lat]) || [-1000, -1000])[1])
     .on('click', (ev, t) => selectTrack(t))
     .on('keydown', (ev, t) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectTrack(t); } });
-  pins.append('title').text(t => t.name + ' (' + t.numRaces + (t.numRaces === 1 ? ' race)' : ' races)'));
 
-  const zoom = d3.zoom().scaleExtent([1, 10]).on('zoom', (ev) => { zoomLayer.attr('transform', ev.transform); });
+  pinGroups.each(function (t) {
+    const w = wScale(t.numRaces), h = w * hRatio;
+    d3.select(this).append('rect')
+      .attr('class', 'pin-mark')
+      .attr('width', w).attr('height', h)
+      .attr('x', -w / 2).attr('y', -h / 2)
+      .attr('rx', h / 2).attr('ry', h / 2);
+  });
+  pinGroups.append('title').text(t => t.name + ' (' + t.numRaces + (t.numRaces === 1 ? ' race)' : ' races)'));
+  const pinLabels = pinGroups.append('text')
+    .attr('class', 'pin-label')
+    .attr('x', t => wScale(t.numRaces) / 2 + 5)
+    .attr('y', 3.5)
+    .text(t => t.name);
+
+  function positionPins(k) {
+    // counter-scale each marker's own size by 1/k so markers stay a constant
+    // screen size as the outer zoom transform scales everything else up -
+    // this is what actually spreads dense clusters (like North Carolina)
+    // apart into individually-clickable markers as you zoom in.
+    pinGroups.attr('transform', function () {
+      const el = d3.select(this);
+      const x = +el.attr('data-x'), y = +el.attr('data-y');
+      return 'translate(' + x + ',' + y + ') scale(' + (1 / k) + ')';
+    });
+    pinLabels.classed('visible', k >= 3.2);
+  }
+  positionPins(1);
+
+  const zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => {
+    zoomLayer.attr('transform', ev.transform);
+    positionPins(ev.transform.k);
+  });
   svg.call(zoom);
   svg.on('dblclick.zoom', null);
   svg.on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
 
   const detailPanel = document.getElementById('detailPanel');
   const detailContent = document.getElementById('detailContent');
-  document.getElementById('closeDetail').addEventListener('click', () => { detailPanel.hidden = true; clearSelection(); });
+  document.getElementById('closeDetail').addEventListener('click', () => { detailPanel.hidden = true; detailPanel.classList.remove('expanded'); clearSelection(); });
 
-  function clearSelection() { pins.classed('selected', false); document.querySelectorAll('.track-row.selected').forEach(r => r.classList.remove('selected')); }
+  const expandBtn = document.getElementById('expandDetail');
+  expandBtn.addEventListener('click', () => {
+    const expanded = detailPanel.classList.toggle('expanded');
+    expandBtn.setAttribute('aria-label', expanded ? 'Collapse to sidebar' : 'Expand to full page');
+    expandBtn.innerHTML = expanded
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5a2 2 0 0 1-2 2H2M15 3v5a2 2 0 0 0 2 2h5M15 21v-5a2 2 0 0 1 2-2h5M9 21v-5a2 2 0 0 0-2-2H2"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+    renderDetailTable(lastSelectedTrack, expanded);
+  });
+
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const mapLayout = document.getElementById('mapLayout');
+  sidebarToggle.addEventListener('click', () => {
+    const collapsed = mapLayout.classList.toggle('sidebar-collapsed');
+    sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand track list' : 'Collapse track list');
+  });
+
+  function clearSelection() { pinGroups.classed('selected', false); document.querySelectorAll('.track-row.selected').forEach(r => r.classList.remove('selected')); }
 
   const moneyFmt = v => { const n = Number(String(v).replace(/,/g, '')); return n ? '$' + n.toLocaleString('en-US') : '&mdash;'; };
 
+  let lastSelectedTrack = null;
+
+  function renderDetailTable(t, expanded) {
+    if (!t) return;
+    const rows = t.races.slice().reverse().map(r => {
+      const basic =
+        '<td>' + r.year + '</td><td>' + (r.date || '') + '</td>' +
+        '<td class="winner">' + (r.winner || '&mdash;') + '</td>' +
+        '<td>' + (r.purse ? moneyFmt(r.purse) : '&mdash;') + '</td>' +
+        '<td>' + (r.poleSpeed && r.poleSpeed !== 'NTT' ? r.poleSpeed : '&mdash;') + '</td>' +
+        '<td>' + (r.avgSpeed || '&mdash;') + '</td>' +
+        '<td>' + (r.cautions || '0') + '</td>';
+      const extra = expanded ?
+        '<td>' + (r.manufacturer || '&mdash;') + '</td>' +
+        '<td>' + (r.startPos || '&mdash;') + '</td>' +
+        '<td>' + (r.leadChanges || '0') + '</td>' +
+        '<td>' + (r.surface === 'paved' ? 'Paved' : r.surface === 'road' ? 'Road' : r.surface || '&mdash;') + '</td>' +
+        '<td>' + (r.cars || '&mdash;') + '</td>' : '';
+      return '<tr>' + basic + extra + '</tr>';
+    }).join('');
+    const extraHead = expanded ? '<th>Make</th><th>Pole St.</th><th>Lead Chg</th><th>Surface</th><th>Cars</th>' : '';
+
+    const tableEl = detailContent.querySelector('table');
+    if (tableEl) {
+      detailContent.querySelector('.table-scroll-outer').innerHTML =
+        '<table class="race-history-table"><thead><tr>' +
+        '<th>Yr</th><th>Date</th><th>Winner</th><th>Purse</th><th>Pole mph</th><th>Avg mph</th><th>Cau</th>' + extraHead +
+        '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+  }
+
   function selectTrack(t) {
     clearSelection();
-    pins.filter(d => d === t).classed('selected', true);
+    lastSelectedTrack = t;
+    pinGroups.filter(d => d === t).classed('selected', true);
     const row = document.querySelector('.track-row[data-name="' + CSS.escape(t.name) + '"]');
     if (row) row.classList.add('selected');
-
-    const rows = t.races.slice().reverse().map(r => (
-      '<tr><td>' + r.year + '</td><td>' + (r.date || '') + '</td>' +
-      '<td class="winner">' + (r.winner || '&mdash;') + '</td>' +
-      '<td>' + (r.purse ? moneyFmt(r.purse) : '&mdash;') + '</td>' +
-      '<td>' + (r.poleSpeed && r.poleSpeed !== 'NTT' ? r.poleSpeed : '&mdash;') + '</td>' +
-      '<td>' + (r.avgSpeed || '&mdash;') + '</td>' +
-      '<td>' + (r.cautions || '0') + '</td></tr>'
-    )).join('');
 
     detailContent.innerHTML =
       '<h2>' + t.name + '</h2>' +
@@ -121,10 +200,8 @@
         '<div><b>' + t.numRaces + '</b>Cup races</div>' +
         '<div><b>' + t.firstRace + '&ndash;' + t.lastRace + '</b>Span</div>' +
       '</div>' +
-      '<div style="max-height:52vh;overflow:auto;border-top:1px solid var(--border);">' +
-      '<table class="race-history-table"><thead><tr>' +
-      '<th>Yr</th><th>Date</th><th>Winner</th><th>Purse</th><th>Pole mph</th><th>Avg mph</th><th>Cau</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+      '<div class="table-scroll-outer"><table></table></div>';
+    renderDetailTable(t, detailPanel.classList.contains('expanded'));
     detailPanel.hidden = false;
   }
 

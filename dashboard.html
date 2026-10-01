@@ -68,6 +68,34 @@
 
   <section class="dash-stats" id="dashStats" aria-label="Summary numbers"></section>
 
+  <section class="panel compare-section" aria-label="Head-to-head comparison">
+    <div class="panel-top"><h3>Compare Two</h3></div>
+    <p class="panel-note" style="margin-top:-4px;">Search for any two drivers, owners, manufacturers, or tracks and compare them head-to-head, within the season/surface/status filters above.</p>
+    <div class="compare-controls">
+      <div class="filter-field">
+        <label for="compareCategory">Compare</label>
+        <select id="compareCategory">
+          <option value="driver">Drivers</option>
+          <option value="owner">Owners</option>
+          <option value="manufacturer">Manufacturers</option>
+          <option value="track">Tracks</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="compareA">First</label>
+        <input type="text" id="compareA" list="compareListA" placeholder="Search&hellip;" autocomplete="off">
+        <datalist id="compareListA"></datalist>
+      </div>
+      <div class="compare-vs">VS</div>
+      <div class="filter-field">
+        <label for="compareB">Second</label>
+        <input type="text" id="compareB" list="compareListB" placeholder="Search&hellip;" autocomplete="off">
+        <datalist id="compareListB"></datalist>
+      </div>
+    </div>
+    <div id="compareResult"></div>
+  </section>
+
   <section class="dash-grid" id="dashGrid" aria-label="Charts"></section>
 
   <section class="data-table-wrap" aria-label="Data table">
@@ -235,11 +263,93 @@
     )).join('') || '<tr><td colspan="7" class="empty-note">No rows match the current filters.</td></tr>';
   }
 
+  // ---- compare two ----
+  const compareCategorySel = document.getElementById('compareCategory');
+  const compareAInput = document.getElementById('compareA');
+  const compareBInput = document.getElementById('compareB');
+  const compareListA = document.getElementById('compareListA');
+  const compareListB = document.getElementById('compareListB');
+  const compareResultEl = document.getElementById('compareResult');
+
+  const COMPARE_METRICS = ['count', 'wins', 'winRate', 'totalMoney', 'medianFinish', 'avgFinish', 'totalLed'];
+
+  function compareFilterKeyFor(category) {
+    // which currentFilters() field corresponds to this compare category,
+    // so we can ignore it (comparing two drivers shouldn't also be
+    // narrowed by the main filter bar's driver dropdown)
+    return { driver: 'driver', manufacturer: 'manufacturers', track: 'track' }[category] || null;
+  }
+
+  function populateCompareLists() {
+    const category = compareCategorySel.value;
+    const bd = N.BREAKDOWNS[category];
+    const names = [...new Set(rows.map(r => bd.key(r)).filter(v => v !== '' && v != null))].sort();
+    const options = names.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">').join('');
+    compareListA.innerHTML = options;
+    compareListB.innerHTML = options;
+  }
+
+  function renderCompare() {
+    const category = compareCategorySel.value;
+    const bd = N.BREAKDOWNS[category];
+    const nameA = compareAInput.value.trim();
+    const nameB = compareBInput.value.trim();
+
+    const f = currentFilters();
+    const ignoreKey = compareFilterKeyFor(category);
+    if (ignoreKey === 'manufacturers') f.manufacturers = []; else if (ignoreKey) f[ignoreKey] = null;
+    const baseRows = N.applyFilters(rows, f);
+
+    const validNames = new Set(baseRows.map(r => bd.key(r)));
+    if (!nameA || !nameB || !validNames.has(nameA) || !validNames.has(nameB)) {
+      compareResultEl.innerHTML = '<p class="compare-empty">Pick two ' + bd.label.toLowerCase() + ' above (matching the current filters) to compare them.</p>';
+      return;
+    }
+
+    const rowsA = baseRows.filter(r => bd.key(r) === nameA);
+    const rowsB = baseRows.filter(r => bd.key(r) === nameB);
+    const valsA = {}, valsB = {};
+    for (const mk of COMPARE_METRICS) { valsA[mk] = N.MEASURES[mk].calc(rowsA); valsB[mk] = N.MEASURES[mk].calc(rowsB); }
+
+    const rowsHtml = COMPARE_METRICS.map(mk => {
+      const m = N.MEASURES[mk];
+      const fmt = m.isMoney ? N.fmtMoney : m.isRate ? N.fmtPct : (v => N.fmtNum(v, 1));
+      const a = valsA[mk] || 0, b = valsB[mk] || 0;
+      const lowerIsBetter = mk === 'medianFinish' || mk === 'avgFinish';
+      const max = Math.max(Math.abs(a), Math.abs(b), 1);
+      const widthA = Math.max((Math.abs(a) / max) * 100, a ? 3 : 0);
+      const widthB = Math.max((Math.abs(b) / max) * 100, b ? 3 : 0);
+      const aWins = lowerIsBetter ? (a !== 0 && (a < b || b === 0)) : a > b;
+      const bWins = lowerIsBetter ? (b !== 0 && (b < a || a === 0)) : b > a;
+      return (
+        '<div class="compare-metric-row">' +
+          '<div class="compare-bar-a"><span class="val" style="' + (aWins ? 'color:var(--accent)' : '') + '">' + fmt(valsA[mk]) + '</span><div class="fill" style="width:' + widthA + '%"></div></div>' +
+          '<div class="mlabel">' + m.label + '</div>' +
+          '<div class="compare-bar-b"><div class="fill" style="width:' + widthB + '%"></div><span class="val" style="' + (bWins ? 'color:var(--cat-1)' : '') + '">' + fmt(valsB[mk]) + '</span></div>' +
+        '</div>'
+      );
+    }).join('');
+
+    compareResultEl.innerHTML =
+      '<div class="compare-grid">' +
+      '<div class="compare-header"><div class="name-a">' + nameA + '</div><div class="vs-label">vs</div><div class="name-b">' + nameB + '</div></div>' +
+      rowsHtml +
+      '</div>';
+  }
+
+  compareCategorySel.addEventListener('change', () => { compareAInput.value = ''; compareBInput.value = ''; populateCompareLists(); renderCompare(); });
+  compareAInput.addEventListener('input', renderCompare);
+  compareBInput.addEventListener('input', renderCompare);
+  populateCompareLists();
+  renderCompare();
+
   function render() {
     const filtered = N.applyFilters(rows, currentFilters());
     renderStats(filtered);
     PANEL_DEFS.forEach(p => renderPanel(p, filtered));
     renderTable(filtered);
+    populateCompareLists();
+    renderCompare();
   }
 
   [yearMinSel, yearMaxSel, 'fDriver', 'fManufacturer', 'fTrack', 'fSurface', 'fStatus'].forEach(x => {
@@ -256,6 +366,9 @@
     document.getElementById('fStatus').value = '';
     document.getElementById('tableBreakdown').value = 'driver';
     tableSort = { key: 'wins', dir: -1 };
+    compareCategorySel.value = 'driver';
+    compareAInput.value = '';
+    compareBInput.value = '';
     PANEL_DEFS.forEach(p => {
       document.getElementById(p.id + '-measure').value = p.defaultMeasure;
       document.getElementById(p.id + '-breakdown').value = p.defaultBreakdown;
