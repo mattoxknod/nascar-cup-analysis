@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NASCAR Cup Series Track Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <span class="mark">CUP<span class="accent-dot">&middot;</span>ATLAS</span>
+    <span class="sub">NASCAR Cup Series, 1949&ndash;2025</span>
+  </a>
+  <nav class="tabs">
+    <a class="tab" href="index.html">Report</a>
+    <a class="tab" href="dashboard.html">Dashboard</a>
+    <a class="tab active" href="map.html">Track Map</a>
+  </nav>
+</header>
+
+<div id="view-map-page">
+  <div class="map-layout">
+    <aside class="track-list-panel">
+      <div class="panel-head">
+        <h2>Tracks</h2>
+        <input type="search" id="trackSearch" placeholder="Search by name or city&hellip;" aria-label="Search tracks">
+      </div>
+      <div class="track-list" id="trackList"></div>
+    </aside>
+    <div class="map-wrap">
+      <svg id="usMap" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the United States with a pin for every NASCAR Cup Series track"></svg>
+      <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a pin</div>
+      <div class="map-legend"><strong>Pin size</strong>Races hosted at that track</div>
+      <aside class="detail-panel" id="detailPanel" hidden>
+        <button class="close-detail" id="closeDetail" aria-label="Close">&times;</button>
+        <div id="detailContent"></div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/topojson.min.js"></script>
+<script>
+(async function () {
+  "use strict";
+
+  const [tracks, us] = await Promise.all([
+    fetch('data/tracks.json').then(r => r.json()),
+    fetch('data/us-states-10m.json').then(r => r.json())
+  ]);
+
+  const svg = d3.select('#usMap');
+  const projection = d3.geoAlbersUsa().scale(1250).translate([487.5, 305]);
+  const path = d3.geoPath(projection);
+  const zoomLayer = svg.append('g');
+
+  const statesGeo = topojson.feature(us, us.objects.states).features;
+  zoomLayer.append('g').attr('class', 'states')
+    .selectAll('path').data(statesGeo).join('path')
+    .attr('class', 'state').attr('d', path);
+
+  const maxRaces = d3.max(tracks, t => t.numRaces);
+  const rScale = d3.scaleSqrt().domain([1, maxRaces]).range([2.6, 15]);
+
+  const pinsG = zoomLayer.append('g').attr('class', 'pins');
+  const pins = pinsG.selectAll('circle').data(tracks).join('circle')
+    .attr('class', 'pin')
+    .attr('tabindex', 0)
+    .attr('role', 'button')
+    .attr('aria-label', t => t.name + ', ' + t.numRaces + ' races')
+    .attr('transform', t => {
+      const p = projection([t.lon, t.lat]);
+      return p ? 'translate(' + p[0] + ',' + p[1] + ')' : 'translate(-100,-100)';
+    })
+    .attr('r', t => rScale(t.numRaces))
+    .on('click', (ev, t) => selectTrack(t))
+    .on('keydown', (ev, t) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectTrack(t); } });
+  pins.append('title').text(t => t.name + ' (' + t.numRaces + (t.numRaces === 1 ? ' race)' : ' races)'));
+
+  const zoom = d3.zoom().scaleExtent([1, 10]).on('zoom', (ev) => { zoomLayer.attr('transform', ev.transform); });
+  svg.call(zoom);
+  svg.on('dblclick.zoom', null);
+  svg.on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
+
+  const detailPanel = document.getElementById('detailPanel');
+  const detailContent = document.getElementById('detailContent');
+  document.getElementById('closeDetail').addEventListener('click', () => { detailPanel.hidden = true; clearSelection(); });
+
+  function clearSelection() { pins.classed('selected', false); document.querySelectorAll('.track-row.selected').forEach(r => r.classList.remove('selected')); }
+
+  const moneyFmt = v => { const n = Number(String(v).replace(/,/g, '')); return n ? '$' + n.toLocaleString('en-US') : '&mdash;'; };
+
+  function selectTrack(t) {
+    clearSelection();
+    pins.filter(d => d === t).classed('selected', true);
+    const row = document.querySelector('.track-row[data-name="' + CSS.escape(t.name) + '"]');
+    if (row) row.classList.add('selected');
+
+    const rows = t.races.slice().reverse().map(r => (
+      '<tr><td>' + r.year + '</td><td>' + (r.date || '') + '</td>' +
+      '<td class="winner">' + (r.winner || '&mdash;') + '</td>' +
+      '<td>' + (r.purse ? moneyFmt(r.purse) : '&mdash;') + '</td>' +
+      '<td>' + (r.poleSpeed && r.poleSpeed !== 'NTT' ? r.poleSpeed : '&mdash;') + '</td>' +
+      '<td>' + (r.avgSpeed || '&mdash;') + '</td>' +
+      '<td>' + (r.cautions || '0') + '</td></tr>'
+    )).join('');
+
+    detailContent.innerHTML =
+      '<h2>' + t.name + '</h2>' +
+      (t.akaNames.length ? '<div class="detail-aka">Formerly: ' + t.akaNames.join(', ') + '</div>' : '') +
+      '<div class="detail-meta">' +
+        '<div><b>' + t.location + '</b>Location</div>' +
+        '<div><b>' + t.numRaces + '</b>Cup races</div>' +
+        '<div><b>' + t.firstRace + '&ndash;' + t.lastRace + '</b>Span</div>' +
+      '</div>' +
+      '<div style="max-height:52vh;overflow:auto;border-top:1px solid var(--border);">' +
+      '<table class="race-history-table"><thead><tr>' +
+      '<th>Yr</th><th>Date</th><th>Winner</th><th>Purse</th><th>Pole mph</th><th>Avg mph</th><th>Cau</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    detailPanel.hidden = false;
+  }
+
+  const trackListEl = document.getElementById('trackList');
+  const sortedTracks = tracks.slice().sort((a, b) => b.numRaces - a.numRaces);
+  function renderTrackList(filterStr) {
+    const f = (filterStr || '').toLowerCase().trim();
+    const list = f ? sortedTracks.filter(t => t.name.toLowerCase().includes(f) || t.location.toLowerCase().includes(f)) : sortedTracks;
+    trackListEl.innerHTML = list.map(t =>
+      '<button class="track-row" data-name="' + t.name.replace(/"/g, '&quot;') + '"><span class="n">' + t.name + '</span><span class="c">' + t.numRaces + '</span></button>'
+    ).join('');
+    trackListEl.querySelectorAll('.track-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = tracks.find(x => x.name === btn.dataset.name);
+        if (t) selectTrack(t);
+      });
+    });
+  }
+  renderTrackList('');
+  document.getElementById('trackSearch').addEventListener('input', (e) => renderTrackList(e.target.value));
+})();
+</script>
+</body>
+</html>

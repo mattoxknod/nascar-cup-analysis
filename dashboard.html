@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NASCAR Cup Series Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <span class="mark">CUP<span class="accent-dot">&middot;</span>ATLAS</span>
+    <span class="sub">NASCAR Cup Series, 1949&ndash;2025</span>
+  </a>
+  <nav class="tabs">
+    <a class="tab" href="index.html">Report</a>
+    <a class="tab active" href="dashboard.html">Dashboard</a>
+    <a class="tab" href="map.html">Track Map</a>
+  </nav>
+</header>
+
+<main class="dash-wrap">
+  <p class="dash-intro">Filter the full 100,199-row dataset by season, driver, manufacturer, track, surface,
+  and finish status. Every number below &mdash; the summary tiles, the four charts, and the table &mdash;
+  recomputes from the filtered rows in your browser.</p>
+
+  <section class="filter-bar" id="filterBar" aria-label="Filters">
+    <div class="filter-field range-field">
+      <div style="flex:1 1 0">
+        <label for="fYearMin">From season</label>
+        <select id="fYearMin"></select>
+      </div>
+      <div style="flex:1 1 0">
+        <label for="fYearMax">To season</label>
+        <select id="fYearMax"></select>
+      </div>
+    </div>
+    <div class="filter-field">
+      <label for="fDriver">Driver</label>
+      <select id="fDriver"><option value="">All drivers</option></select>
+    </div>
+    <div class="filter-field">
+      <label for="fManufacturer">Manufacturer</label>
+      <select id="fManufacturer"><option value="">All manufacturers</option></select>
+    </div>
+    <div class="filter-field">
+      <label for="fTrack">Track</label>
+      <select id="fTrack"><option value="">All tracks</option></select>
+    </div>
+    <div class="filter-field">
+      <label for="fSurface">Surface</label>
+      <select id="fSurface"><option value="">All surfaces</option></select>
+    </div>
+    <div class="filter-field">
+      <label for="fStatus">Finish status</label>
+      <select id="fStatus"><option value="">All statuses</option></select>
+    </div>
+    <div class="filter-field">
+      <button class="reset-btn" id="resetBtn" type="button">Reset all filters</button>
+    </div>
+  </section>
+
+  <section class="dash-stats" id="dashStats" aria-label="Summary numbers"></section>
+
+  <section class="dash-grid" id="dashGrid" aria-label="Charts"></section>
+
+  <section class="data-table-wrap" aria-label="Data table">
+    <div class="panel-top">
+      <h3 style="font-size:1.1rem">Numbers Behind This View</h3>
+      <div class="panel-controls">
+        <label style="align-self:center;font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Group by</label>
+        <select id="tableBreakdown"></select>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table" id="dataTable">
+        <thead><tr id="dataTableHead"></tr></thead>
+        <tbody id="dataTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  Data source: racing-reference.info, 1949&ndash;2025 NASCAR Cup Series results. See the
+  <a href="index.html#findings">report</a> for written findings, or the
+  <a href="https://github.com/mattoxknod/nascar-cup-analysis" target="_blank" rel="noopener">repository</a>
+  for methodology.
+</footer>
+
+<script src="vendor/papaparse.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script>
+(async function () {
+  "use strict";
+  const N = window.NASCAR;
+  const C = window.NASCARCharts;
+  const rows = await N.loadData();
+
+  const distinct = (field) => [...new Set(rows.map(r => r[field]).filter(v => v !== '' && v != null))];
+
+  // ---- populate filter options from the data itself ----
+  const years = distinct('year').sort((a, b) => a - b);
+  const yearMinSel = document.getElementById('fYearMin');
+  const yearMaxSel = document.getElementById('fYearMax');
+  years.forEach(y => { yearMinSel.add(new Option(y, y)); yearMaxSel.add(new Option(y, y)); });
+  yearMinSel.value = years[0];
+  yearMaxSel.value = years[years.length - 1];
+
+  distinct('driver').sort().forEach(d => document.getElementById('fDriver').add(new Option(d, d)));
+  const mfrByWins = N.aggregate(rows, 'manufacturer', 'wins');
+  mfrByWins.forEach(m => document.getElementById('fManufacturer').add(new Option(m.name, m.name)));
+  const trackByCount = N.aggregate(rows.filter(r => r.finishPos === 1), 'track', 'count');
+  trackByCount.forEach(t => document.getElementById('fTrack').add(new Option(t.name, t.name)));
+  distinct('surface').sort().forEach(s => document.getElementById('fSurface').add(new Option(s === 'paved' ? 'Paved' : s === 'road' ? 'Road course' : s === 'dirt' ? 'Dirt' : s, s)));
+  const statusByCount = N.aggregate(rows, 'status', 'count', { limit: 12 });
+  statusByCount.forEach(s => document.getElementById('fStatus').add(new Option(s.name + ' (' + s.value.toLocaleString() + ')', s.name)));
+
+  const tableBreakdownSel = document.getElementById('tableBreakdown');
+  Object.entries(N.BREAKDOWNS).forEach(([k, v]) => tableBreakdownSel.add(new Option(v.label, k)));
+  tableBreakdownSel.value = 'driver';
+
+  function currentFilters() {
+    return {
+      yearMin: Number(yearMinSel.value),
+      yearMax: Number(yearMaxSel.value),
+      driver: document.getElementById('fDriver').value || null,
+      manufacturers: document.getElementById('fManufacturer').value ? [document.getElementById('fManufacturer').value] : [],
+      track: document.getElementById('fTrack').value || null,
+      surface: document.getElementById('fSurface').value || null,
+      status: document.getElementById('fStatus').value || null
+    };
+  }
+
+  // ---- 4 chart panels, each with its own measure + breakdown switch ----
+  const PANEL_DEFS = [
+    { id: 'p1', title: 'Wins', defaultMeasure: 'wins', defaultBreakdown: 'driver' },
+    { id: 'p2', title: 'Entries', defaultMeasure: 'count', defaultBreakdown: 'manufacturer' },
+    { id: 'p3', title: 'Winnings', defaultMeasure: 'totalMoney', defaultBreakdown: 'owner' },
+    { id: 'p4', title: 'Finish Position', defaultMeasure: 'medianFinish', defaultBreakdown: 'track' }
+  ];
+  const grid = document.getElementById('dashGrid');
+  grid.innerHTML = PANEL_DEFS.map(p => (
+    '<div class="panel">' +
+      '<div class="panel-top"><h3>' + p.title + '</h3>' +
+      '<div class="panel-controls">' +
+        '<select id="' + p.id + '-measure" aria-label="Measure for ' + p.title + '"></select>' +
+        '<select id="' + p.id + '-breakdown" aria-label="Breakdown for ' + p.title + '"></select>' +
+      '</div></div>' +
+      '<div id="' + p.id + '-chart"></div>' +
+    '</div>'
+  )).join('');
+  PANEL_DEFS.forEach(p => {
+    const mSel = document.getElementById(p.id + '-measure');
+    Object.entries(N.MEASURES).forEach(([k, v]) => mSel.add(new Option(v.label, k)));
+    mSel.value = p.defaultMeasure;
+    const bSel = document.getElementById(p.id + '-breakdown');
+    Object.entries(N.BREAKDOWNS).forEach(([k, v]) => bSel.add(new Option(v.label, k)));
+    bSel.value = p.defaultBreakdown;
+    mSel.addEventListener('change', render);
+    bSel.addEventListener('change', render);
+  });
+
+  function fmtForMeasure(measureKey) {
+    const m = N.MEASURES[measureKey];
+    if (m.isMoney) return N.fmtMoney;
+    if (m.isRate) return N.fmtPct;
+    return v => N.fmtNum(v, 1);
+  }
+
+  function renderPanel(p, filteredRows) {
+    const measureKey = document.getElementById(p.id + '-measure').value;
+    const breakdownKey = document.getElementById(p.id + '-breakdown').value;
+    const data = N.aggregate(filteredRows, breakdownKey, measureKey, { limit: 12, minN: measureKey === 'medianFinish' || measureKey === 'avgFinish' || measureKey === 'winRate' ? 5 : 1 });
+    C.renderBarList(document.getElementById(p.id + '-chart'), data, { fmt: fmtForMeasure(measureKey) });
+  }
+
+  // ---- summary tiles ----
+  function renderStats(filteredRows) {
+    const raceIds = new Set(filteredRows.map(r => r.year + '-' + r.raceNum));
+    const w = filteredRows.filter(r => r.finishPos === 1).length;
+    const stats = [
+      [N.fmtNum(filteredRows.length, 0), 'Entries in view'],
+      [N.fmtNum(raceIds.size, 0), 'Distinct races'],
+      [N.fmtNum(w, 0), 'Wins in view'],
+      [N.fmtNum(N.mean(filteredRows.map(r => r.finishPos)), 1), 'Average finish'],
+      [N.fmtMoney(N.sum(filteredRows.map(r => r.money))), 'Total winnings in view']
+    ];
+    document.getElementById('dashStats').innerHTML = stats.map(([v, l]) =>
+      '<div class="stat-tile"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>'
+    ).join('');
+  }
+
+  // ---- data table ----
+  const TABLE_MEASURES = ['count', 'wins', 'winRate', 'totalMoney', 'medianFinish', 'avgFinish'];
+  let tableSort = { key: 'wins', dir: -1 };
+  function renderTable(filteredRows) {
+    const breakdownKey = document.getElementById('tableBreakdown').value;
+    const bd = N.BREAKDOWNS[breakdownKey];
+    const groups = new Map();
+    for (const r of filteredRows) {
+      const k = bd.key(r);
+      if (k === '' || k == null) continue;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    }
+    let tableRows = [...groups.entries()].map(([name, g]) => {
+      const o = { name };
+      for (const mk of TABLE_MEASURES) o[mk] = N.MEASURES[mk].calc(g);
+      return o;
+    });
+    tableRows.sort((a, b) => (a[tableSort.key] - b[tableSort.key]) * tableSort.dir);
+    tableRows = tableRows.slice(0, 300);
+
+    const head = document.getElementById('dataTableHead');
+    const cols = [{ k: 'name', l: bd.label }].concat(TABLE_MEASURES.map(mk => ({ k: mk, l: N.MEASURES[mk].label })));
+    head.innerHTML = cols.map(c => '<th data-k="' + c.k + '">' + c.l + (tableSort.key === c.k ? (tableSort.dir === -1 ? ' ↓' : ' ↑') : '') + '</th>').join('');
+    head.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+      const k = th.dataset.k;
+      if (tableSort.key === k) tableSort.dir *= -1; else tableSort = { key: k, dir: -1 };
+      renderTable(filteredRows);
+    }));
+
+    document.getElementById('dataTableBody').innerHTML = tableRows.map(r => (
+      '<tr><td>' + r.name + '</td><td>' + N.fmtNum(r.count, 0) + '</td><td>' + N.fmtNum(r.wins, 0) + '</td>' +
+      '<td>' + N.fmtPct(r.winRate) + '</td><td>' + N.fmtMoney(r.totalMoney) + '</td>' +
+      '<td>' + N.fmtNum(r.medianFinish, 1) + '</td><td>' + N.fmtNum(r.avgFinish, 1) + '</td></tr>'
+    )).join('') || '<tr><td colspan="7" class="empty-note">No rows match the current filters.</td></tr>';
+  }
+
+  function render() {
+    const filtered = N.applyFilters(rows, currentFilters());
+    renderStats(filtered);
+    PANEL_DEFS.forEach(p => renderPanel(p, filtered));
+    renderTable(filtered);
+  }
+
+  [yearMinSel, yearMaxSel, 'fDriver', 'fManufacturer', 'fTrack', 'fSurface', 'fStatus'].forEach(x => {
+    const el = typeof x === 'string' ? document.getElementById(x) : x;
+    el.addEventListener('change', render);
+  });
+  document.getElementById('tableBreakdown').addEventListener('change', render);
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    yearMinSel.value = years[0]; yearMaxSel.value = years[years.length - 1];
+    document.getElementById('fDriver').value = '';
+    document.getElementById('fManufacturer').value = '';
+    document.getElementById('fTrack').value = '';
+    document.getElementById('fSurface').value = '';
+    document.getElementById('fStatus').value = '';
+    document.getElementById('tableBreakdown').value = 'driver';
+    tableSort = { key: 'wins', dir: -1 };
+    PANEL_DEFS.forEach(p => {
+      document.getElementById(p.id + '-measure').value = p.defaultMeasure;
+      document.getElementById(p.id + '-breakdown').value = p.defaultBreakdown;
+    });
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
