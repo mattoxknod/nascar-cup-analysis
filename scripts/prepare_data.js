@@ -37,6 +37,7 @@ const rows = results.map(r => {
   return {
     year,
     decade: Math.floor(year / 10) * 10,
+    raceNum: num(r.raceNum),
     date: r.date,
     track: r.track,
     surface: r.trackType || '',
@@ -65,7 +66,7 @@ function csvField(v) {
   const s = String(v);
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
-const HEADER = ['year','decade','date','track','surface','driver','manufacturer','owner','startPos','finishPos','laps','totalLaps','led','status','money','pts','avgSpeed','poleSpeed','cautions','leadChanges','raceMiles'];
+const HEADER = ['year','decade','raceNum','date','track','surface','driver','manufacturer','owner','startPos','finishPos','laps','totalLaps','led','status','money','pts','avgSpeed','poleSpeed','cautions','leadChanges','raceMiles'];
 const csvLines = [HEADER.join(',')];
 for (const row of rows) csvLines.push(HEADER.map(h => csvField(row[h])).join(','));
 

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NASCAR Cup Series, 1949&ndash;2025: A Data Report</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <span class="mark">CUP<span class="accent-dot">&middot;</span>ATLAS</span>
+    <span class="sub">NASCAR Cup Series, 1949&ndash;2025</span>
+  </a>
+  <nav class="tabs">
+    <a class="tab active" href="index.html">Report</a>
+    <a class="tab" href="dashboard.html">Dashboard</a>
+    <a class="tab" href="map.html">Track Map</a>
+  </nav>
+</header>
+
+<main class="page-wrap">
+  <section class="report-hero">
+    <h1>Seventy-Seven Years of NASCAR Cup Racing</h1>
+    <div class="byline">By Mattox Knod &middot; Financial Data Analytics</div>
+    <p class="summary">
+      This report covers every NASCAR Cup Series race run between 1949 and 2025 &mdash; 2,822 races at
+      156 different tracks, down to every driver's finish, starting spot, laps led, and prize money in
+      each one. The findings below trace how the sport's competitive landscape has shifted: who wins,
+      which manufacturers and race teams dominate which eras, how fast the cars go, how often they finish,
+      and what happened to the prize money the sport used to publish for every driver in every race.
+    </p>
+  </section>
+
+  <section class="headline-stats" id="headlineStats" aria-label="Headline numbers">
+    <div class="stat-tile"><div class="v" id="hsRaces">&hellip;</div><div class="l">Races, 1949&ndash;2025</div></div>
+    <div class="stat-tile"><div class="v" id="hsEntries">&hellip;</div><div class="l">Driver-race entries analyzed</div></div>
+    <div class="stat-tile"><div class="v" id="hsWinners">&hellip;</div><div class="l">Different race winners</div></div>
+    <div class="stat-tile"><div class="v" id="hsSeasons">&hellip;</div><div class="l">Seasons covered</div></div>
+  </section>
+
+  <article id="findings">
+
+    <section class="finding">
+      <div class="finding-num">Finding 01</div>
+      <h2>Richard Petty's 200 Wins Stand Alone</h2>
+      <div class="finding-body">
+        <p>Richard Petty won <strong>200</strong> of the 2,822 races in this dataset &mdash; about one in
+        every fourteen races ever run. The next-closest driver, David Pearson, won 105, barely half of
+        Petty's total, even though Pearson started 575 races to Petty's 1,185. No modern driver is within
+        a hundred wins of either: Jeff Gordon leads the post-1990 era with 93, and the active win leader
+        heading into 2025, Kyle Busch, sits at 63.</p>
+        <p>The gap says as much about the era as the driver. Petty and Pearson raced in a period when the
+        schedule sometimes ran past 50 races a year (62 in 1964 alone) and a handful of strong teams could
+        win most of them. The modern 36-race schedule and a deeper field of competitive teams make a
+        200-win career effectively impossible to repeat.</p>
+      </div>
+      <div class="chart-box"><div id="chart1"></div></div>
+      <p class="chart-caption">Top 10 drivers by career wins, all 2,822 races, 1949&ndash;2025.</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 02</div>
+      <h2>The Manufacturer Wars Changed Sides Four Times</h2>
+      <div class="finding-body">
+        <p>Chevrolet leads all-time with 879 wins, but no single manufacturer has led every era. Ford won
+        195 of 522 races in the 1960s &mdash; nearly 37% of the decade &mdash; while Plymouth, now defunct,
+        was the second brand of that era and stayed competitive through the 1970s before Chrysler pulled
+        factory support and Plymouth never won another Cup race after 1977. Dodge came and went twice: a
+        1960s&ndash;70s factory era, then a comeback from 2001&ndash;2012 before leaving again.</p>
+        <p>Toyota is the newest manufacturer in the series, entering Cup competition in 2007. It won 21
+        races in the 2000s and then overtook Ford in the 2010s, 122 wins to 91, becoming a permanent
+        third major brand alongside Chevrolet and Ford.</p>
+      </div>
+      <div class="chart-box"><div id="chart2"></div></div>
+      <p class="chart-caption">Wins per decade, top 5 manufacturers by all-time wins.</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 03</div>
+      <h2>One Team Has Fielded Almost 60% More Wins Than Anyone Else</h2>
+      <div class="finding-body">
+        <p>By car owner, Hendrick Motorsports has fielded 320 Cup Series winners &mdash; almost 60% more
+        than Joe Gibbs Racing's 227, the next-closest team. Roger Penske (153) and Jack Roush (143) round
+        out the next tier. Richard Petty's own team, Petty Enterprises, won 124 races as an owner, putting
+        the sport's winningest driver's team only fifth on the owner leaderboard, behind four organizations
+        that built their records across different drivers and decades rather than one dominant career.</p>
+        <p>That gap between a driver's individual total and their team's organizational total is the
+        clearest sign of how much Cup Series success depends on sustained operations &mdash; funding,
+        engineering, and driver development &mdash; rather than any single competitor.</p>
+      </div>
+      <div class="chart-box"><div id="chart3"></div></div>
+      <p class="chart-caption">Top 10 car owners by career wins.</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 04</div>
+      <h2>Winning Speeds Climbed for Forty Years, Then Stopped</h2>
+      <div class="finding-body">
+        <p>The average winning speed rose steadily from 56.6 mph in the 1950s to a peak of 123.6 mph in
+        the 2010s &mdash; more than doubling as tracks, engines, and aerodynamics improved. The 2020s have
+        actually seen winning speeds fall back to 112.2 mph, the lowest since the 1980s.</p>
+        <p>That drop is not cars getting slower on their own; it reflects schedule changes &mdash; more
+        short tracks, road courses, and street circuits (all run at lower average speed than a
+        superspeedway) were added to the schedule in the 2020s, and the Next Gen car introduced in 2022
+        changed how competitively bunched the field runs. Average winning speed mixes all of that
+        together into one number, which is exactly why the dashboard lets you break it out by track type.</p>
+      </div>
+      <div class="chart-box"><div id="chart4"></div></div>
+      <p class="chart-caption">Average winning speed (mph) by decade, one value per race (the winner's row).</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 05</div>
+      <h2>The Purse Data Goes Dark in 2016</h2>
+      <div class="finding-body">
+        <p>Summed across every driver in every race, total reported winnings grew from $2.5 million in
+        1972 to a peak of $200.7 million in 2014. Then, abruptly, the number collapses: by 2018 it is
+        effectively zero, and it stays there through 2025.</p>
+        <p>This is not a sign that NASCAR stopped paying drivers. In 2016, the series moved to a "charter"
+        system that guarantees teams a share of revenue through private agreements, and the sanctioning
+        body stopped publicly itemizing what each driver earned in each race. The 2,822-race dataset still
+        records every finish, but prize money is only a reliable number for races run in 1972&ndash;2015.
+        Any "total winnings" figure in this report or the dashboard should be read as covering that window
+        only, never the full 77 seasons.</p>
+      </div>
+      <div class="chart-box"><div id="chart5"></div></div>
+      <p class="chart-caption">Total reported driver winnings by year, summed across every entrant, 1972&ndash;2015.</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 06</div>
+      <h2>Five Tracks Have Hosted a Quarter of Every Race Ever Run</h2>
+      <div class="finding-body">
+        <p>Daytona International Speedway (157 races), Charlotte Motor Speedway (156), Martinsville
+        Speedway (154), Richmond Raceway (141), and Atlanta Motor Speedway (134) together account for 742
+        of the 2,822 races in this dataset &mdash; about 26%. All five are in the Southeast, the region
+        where the sport was founded, and all five have hosted Cup races continuously since the 1950s or
+        60s.</p>
+        <p>The concentration drops off quickly after that: Talladega, Michigan, and Dover each sit in the
+        100&ndash;113 range, and the median track in this dataset has hosted far fewer races than the
+        leaders. The full geography &mdash; including the dozens of tracks that hosted only one or two
+        races in NASCAR's earliest, most experimental seasons &mdash; is on the interactive
+        <a href="map.html">Track Map</a> page.</p>
+      </div>
+      <div class="chart-box"><div id="chart6"></div></div>
+      <p class="chart-caption">Top 15 tracks by races hosted, 1949&ndash;2025.</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 07</div>
+      <h2>Races Got More Competitive, Not Cleaner</h2>
+      <div class="finding-body">
+        <p>Average caution flags per race climbed from 3.1 in the 1950s to a peak of 8.7 in the 2000s,
+        settling around 7.5 over the last fifteen years. Lead changes per race tell a related story: just
+        3.2 per race in the 1950s, they jumped past 17 by the 1970s and have stayed in the high teens to
+        low twenties ever since, currently 20.7 per race in the 2020s.</p>
+        <p>Read together, these two numbers describe a sport that got more competitive, not safer in the
+        sense of fewer incidents: more cars capable of leading, bunched tighter by the aerodynamic and
+        engine rules of the modern era, produces both more caution-flag incidents and more on-track passes
+        for the lead.</p>
+      </div>
+      <div class="chart-box"><div id="chart7"></div></div>
+      <p class="chart-caption">Average cautions and lead changes per race by decade, one value per race (the winner's row).</p>
+    </section>
+
+    <section class="finding">
+      <div class="finding-num">Finding 08</div>
+      <h2>Cars Finish Races Far More Often Than They Used To</h2>
+      <div class="finding-body">
+        <p>Only 31% of cars that started a race in the 1940s were still running &mdash; "classified as
+        finishing" &mdash; at the end. That climbed past 50% by the 1950s, crossed 78% in the 1990s, and
+        sits at 86.1% in the 2020s, the highest finish rate of any decade in this dataset.</p>
+        <p>Safer cars, more reliable engines and parts, and rules like the "lucky dog" wave-around
+        (introduced in 2003, which lets the first car a lap down get its lap back under caution instead of
+        pitting or taking extra risks to stay on the lead lap) all point the same direction: modern Cup
+        Series cars are dramatically more likely to see the checkered flag than their 20th-century
+        counterparts.</p>
+      </div>
+      <div class="chart-box"><div id="chart8"></div></div>
+      <p class="chart-caption">Share of all driver-race entries classified "running" at the finish, by decade.</p>
+    </section>
+
+  </article>
+
+  <section class="closing-section">
+    <h2>About This Data</h2>
+    <div class="closing-body">
+      <p>Every number on this site &mdash; the report, the dashboard, and the track map &mdash; comes from
+      one file, <code>data/race_results.csv</code>, built from <a href="https://www.racing-reference.info/"
+      target="_blank" rel="noopener">racing-reference.info</a>, a public NASCAR statistics archive. The
+      site blocks ordinary scripted requests, so the data was collected through a real browser session,
+      page by page, across every NASCAR Cup Series season from 1949 through 2025. The still-in-progress
+      2026 season is excluded entirely, since it has no results yet.</p>
+
+      <dl>
+        <dt>What one row is</dt>
+        <dd>One driver's result in one Cup Series race &mdash; for example, "Kyle Larson's run in the 2024
+        Daytona 500" is a single row. A 43-car race produces 43 rows. The dataset has 100,199 rows across
+        2,822 races.</dd>
+
+        <dt>Rows dropped</dt>
+        <dd>None of the 100,199 scraped driver-race rows were removed. Several auxiliary pages that exist
+        per race on the source site &mdash; qualifying lap times, lap-by-lap running position, pit-stop
+        logs, penalty records, and crew-chief rosters &mdash; were out of scope for this project and were
+        never collected, so this dataset does not include them. Where a field legitimately was not
+        recorded for a given race (for example, prize money after 2015, or caution data for the single
+        1949 season), it is left blank rather than estimated.</dd>
+
+        <dt>Wins and win rate</dt>
+        <dd>A "win" is any row where <code>finishPos</code> (the official finishing position) equals 1.
+        "Win rate" for a group is its win count divided by its total entries in that group.</dd>
+
+        <dt>Total winnings</dt>
+        <dd>The sum of the <code>money</code> field, each driver's individually reported prize money for
+        that race. This field is populated for 1949&ndash;2015 and essentially empty afterward (see
+        Finding 05) &mdash; any total-winnings figure should be understood as covering only the years with
+        data, not the full 77-season span.</dd>
+
+        <dt>Median and average finish</dt>
+        <dd>The median or mean of <code>finishPos</code> across every row in a group.</dd>
+
+        <dt>Race-level figures (speed, cautions, lead changes, races hosted)</dt>
+        <dd>Average winning speed, pole speed, caution count, and lead-change count are the same for every
+        driver's row within one race &mdash; they describe the race, not the driver. Averaging them across
+        all ~35&ndash;43 rows per race would overcount every race by its field size, so these figures are
+        always computed from exactly one row per race: the winner's row. "Races hosted" at a track is
+        likewise counted as the number of winner-rows at that track, not the number of driver-race rows.</dd>
+
+        <dt>Finish rate</dt>
+        <dd>The share of all driver-race entries (not just winners) in a group whose <code>status</code>
+        field is exactly <code>running</code> &mdash; meaning the car was still running, not necessarily
+        on the lead lap, when the race ended &mdash; versus a mechanical or crash-related retirement.</dd>
+
+        <dt>Manufacturer names</dt>
+        <dd>Entries from 1949 through the mid-1970s sometimes list a model year ahead of the brand (for
+        example, <code>'57 Chevrolet</code>). These were normalized to the base brand name
+        (<code>Chevrolet</code>) so that manufacturer totals aggregate correctly across eras; 19 distinct
+        normalized brands appear in the dataset.</dd>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  Data source: racing-reference.info. Built for a Financial Data Analytics course project. See
+  <a href="https://github.com/mattoxknod/nascar-cup-analysis" target="_blank" rel="noopener">the repository</a>
+  for the data-preparation scripts and full methodology.
+</footer>
+
+<script src="vendor/papaparse.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script>
+(async function () {
+  "use strict";
+  const rows = await window.NASCAR.loadData();
+  const N = window.NASCAR;
+  const C = window.NASCARCharts;
+  const wins = rows.filter(r => r.finishPos === 1);
+  const decades = [...new Set(rows.map(r => r.decade))].sort((a, b) => a - b);
+  const decadeLabel = d => d + 's';
+
+  // ---- Headline numbers (computed live, same CSV the dashboard loads) ----
+  document.getElementById('hsRaces').textContent = N.fmtNum(wins.length, 0);
+  document.getElementById('hsEntries').textContent = N.fmtNum(rows.length, 0);
+  document.getElementById('hsWinners').textContent = N.fmtNum(new Set(wins.map(r => r.driver)).size, 0);
+  document.getElementById('hsSeasons').textContent = (Math.max(...rows.map(r=>r.year)) - Math.min(...rows.map(r=>r.year)) + 1);
+
+  // ---- Finding 1: top drivers by wins ----
+  C.renderBarList(document.getElementById('chart1'), N.aggregate(rows, 'driver', 'wins', { limit: 10 }), { fmt: v => v, color: 'var(--accent)' });
+
+  // ---- Finding 2: manufacturer wins by decade, top 5 brands, multi-line ----
+  const CAT = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
+  const top5Mfr = N.aggregate(rows, 'manufacturer', 'wins', { limit: 5 }).map(d => d.name);
+  const mfrSeries = top5Mfr.map((m, i) => ({
+    name: m, color: CAT[i],
+    points: decades.map(d => ({ x: d, y: wins.filter(r => r.decade === d && r.manufacturer === m).length }))
+  }));
+  C.renderLineChart(document.getElementById('chart2'), mfrSeries, { yFmt: v => Math.round(v), xFmt: decadeLabel });
+
+  // ---- Finding 3: top owners by wins ----
+  C.renderBarList(document.getElementById('chart3'), N.aggregate(rows, 'owner', 'wins', { limit: 10 }), { fmt: v => v, color: 'var(--accent)' });
+
+  // ---- Finding 4: avg winning speed by decade ----
+  const speedPts = decades.map(d => {
+    const dWins = wins.filter(r => r.decade === d);
+    return { x: d, y: N.mean(dWins.map(r => r.avgSpeed)) };
+  }).filter(p => p.y !== null);
+  C.renderLineChart(document.getElementById('chart4'), [{ name: 'Avg winning speed', color: 'var(--accent)', points: speedPts }], { yFmt: v => Math.round(v) + ' mph', xFmt: decadeLabel });
+
+  // ---- Finding 5: total winnings by year ----
+  const years = [...new Set(rows.map(r => r.year))].sort((a, b) => a - b);
+  const moneyPts = years.map(y => ({ x: y, y: N.sum(rows.filter(r => r.year === y).map(r => r.money)) })).filter(p => p.y > 0);
+  C.renderLineChart(document.getElementById('chart5'), [{ name: 'Total winnings', color: 'var(--accent)', points: moneyPts }], { yFmt: v => '$' + Math.round(v / 1e6) + 'M', xFmt: v => v });
+
+  // ---- Finding 6: top tracks by races hosted ----
+  C.renderBarList(document.getElementById('chart6'), N.aggregate(wins, 'track', 'count', { limit: 15 }), { fmt: v => v, color: 'var(--accent)' });
+
+  // ---- Finding 7: cautions & lead changes by decade ----
+  const cautionPts = decades.map(d => { const dWins = wins.filter(r => r.decade === d); return { x: d, y: N.mean(dWins.map(r => r.cautions)) }; }).filter(p => p.y !== null);
+  const leadPts = decades.map(d => { const dWins = wins.filter(r => r.decade === d); return { x: d, y: N.mean(dWins.map(r => r.leadChanges)) }; }).filter(p => p.y !== null);
+  C.renderLineChart(document.getElementById('chart7'), [
+    { name: 'Cautions / race', color: 'var(--cat-8)', points: cautionPts },
+    { name: 'Lead changes / race', color: 'var(--cat-1)', points: leadPts }
+  ], { yFmt: v => Math.round(v), xFmt: decadeLabel });
+
+  // ---- Finding 8: finish rate by decade ----
+  const finishPts = decades.map(d => {
+    const dRows = rows.filter(r => r.decade === d);
+    const finished = dRows.filter(r => r.status === 'running').length;
+    return { x: d, y: dRows.length ? (100 * finished / dRows.length) : null };
+  }).filter(p => p.y !== null);
+  C.renderLineChart(document.getElementById('chart8'), [{ name: 'Finish rate', color: 'var(--accent)', points: finishPts }], { yFmt: v => Math.round(v) + '%', xFmt: decadeLabel });
+})();
+</script>
+</body>
+</html>

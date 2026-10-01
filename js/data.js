@@ -6,7 +6,7 @@
 window.NASCAR = (function () {
   "use strict";
 
-  const NUMERIC_FIELDS = ['year','decade','startPos','finishPos','laps','totalLaps','led','money','pts','avgSpeed','poleSpeed','cautions','leadChanges','raceMiles'];
+  const NUMERIC_FIELDS = ['year','decade','raceNum','startPos','finishPos','laps','totalLaps','led','money','pts','avgSpeed','poleSpeed','cautions','leadChanges','raceMiles'];
 
   function loadData() {
     return new Promise((resolve, reject) => {
