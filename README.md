@@ -24,6 +24,10 @@ driver-race entries, 206 different winners. Built for a Financial Data Analytics
 | `scripts/compute_findings.js` | A verification script (not used by the site itself) that independently recomputes every number quoted in the report's eight findings, so they can be checked against `race_results.csv` directly. Run with `node scripts/compute_findings.js`. |
 | `vendor/d3.min.js`, `vendor/topojson.min.js` | Third-party libraries used only by `map.html`, to draw the projected US map and convert the TopoJSON basemap to drawable paths. |
 | `vendor/papaparse.min.js` | Third-party CSV parser used by `js/data.js` to load `race_results.csv` in the browser. |
+| `js/theme.js` | Shared light/dark toggle, used by all three pages and persisted in `localStorage`. |
+| `data/track_shapes.json` | Simplified outline silhouettes (SVG paths) for 30 well-known tracks, inspired by a blueprint-style reference graphic. Not survey-accurate &mdash; stylized but recognizable. `map.html` shows one in the detail panel when you click a track that has one; most of the 181 tracks don't, by design. |
+| `scripts/generate_track_shapes.js` | Generates `data/track_shapes.json` &mdash; a parametric oval/pill/rectangle generator plus a few hand-authored paths (Pocono's triangle, Phoenix's dogleg, the road courses). Run with `node scripts/generate_track_shapes.js`. |
+| `scripts/generate_background_pattern.js` | Generates the tiling background pattern (overlapping, unlabeled track outlines) baked into `css/styles.css` as the `--bg-pattern` custom property, used behind the report and dashboard pages. |
 | `package.json` | Declares the one dependency (`xlsx`) used by `scripts/prepare_data.js`. Not needed to view the site, only to regenerate the dataset. |
 
 ## Where the data comes from

@@ -40,7 +40,7 @@
     <div class="map-wrap">
       <svg id="usMap" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the United States with a marker for every NASCAR Cup Series track"></svg>
       <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a track</div>
-      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Zoom in on a cluster to spread markers apart and reveal names.</div>
+      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Zoom in on a cluster to spread markers apart and reveal names.<br><span class="has-outline-dot" style="position:static;display:inline-block;"></span> Track list entries with this dot have a known track outline.</div>
       <aside class="detail-panel" id="detailPanel" hidden>
         <div class="detail-panel-actions">
           <button id="expandDetail" type="button" aria-label="Expand to full page">
@@ -60,9 +60,10 @@
 (async function () {
   "use strict";
 
-  const [tracks, us] = await Promise.all([
+  const [tracks, us, trackShapes] = await Promise.all([
     fetch('data/tracks.json').then(r => r.json()),
-    fetch('data/us-states-10m.json').then(r => r.json())
+    fetch('data/us-states-10m.json').then(r => r.json()),
+    fetch('data/track_shapes.json').then(r => r.json())
   ]);
 
   const svg = d3.select('#usMap');
@@ -192,9 +193,15 @@
     const row = document.querySelector('.track-row[data-name="' + CSS.escape(t.name) + '"]');
     if (row) row.classList.add('selected');
 
+    const shape = trackShapes[t.name];
+    const outlineHtml = shape ?
+      '<div class="track-outline"><svg viewBox="0 0 200 100" aria-hidden="true"><path d="' + shape.path + '"/></svg></div>' :
+      '<div class="track-outline track-outline-missing">No outline on record for this track yet</div>';
+
     detailContent.innerHTML =
       '<h2>' + t.name + '</h2>' +
       (t.akaNames.length ? '<div class="detail-aka">Formerly: ' + t.akaNames.join(', ') + '</div>' : '') +
+      outlineHtml +
       '<div class="detail-meta">' +
         '<div><b>' + t.location + '</b>Location</div>' +
         '<div><b>' + t.numRaces + '</b>Cup races</div>' +
@@ -211,7 +218,10 @@
     const f = (filterStr || '').toLowerCase().trim();
     const list = f ? sortedTracks.filter(t => t.name.toLowerCase().includes(f) || t.location.toLowerCase().includes(f)) : sortedTracks;
     trackListEl.innerHTML = list.map(t =>
-      '<button class="track-row" data-name="' + t.name.replace(/"/g, '&quot;') + '"><span class="n">' + t.name + '</span><span class="c">' + t.numRaces + '</span></button>'
+      '<button class="track-row" data-name="' + t.name.replace(/"/g, '&quot;') + '">' +
+        '<span class="n">' + (trackShapes[t.name] ? '<span class="has-outline-dot" title="Outline available"></span>' : '') + t.name + '</span>' +
+        '<span class="c">' + t.numRaces + '</span>' +
+      '</button>'
     ).join('');
     trackListEl.querySelectorAll('.track-row').forEach(btn => {
       btn.addEventListener('click', () => {
