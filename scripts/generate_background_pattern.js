@@ -8,7 +8,7 @@ const TILE = 640;
 // hand-picked for variety of silhouette, placed/rotated/scaled to overlap
 const placements = [
   { name: 'Pocono Raceway', x: 90, y: 110, scale: 1.3, rot: -12 },
-  { name: 'Indianapolis Motor Speedway', x: 420, y: 90, scale: 1.1, rot: 8 },
+  { name: 'Indianapolis Grand Prix Circuit', x: 420, y: 90, scale: 1.1, rot: 8 },
   { name: 'Daytona International Speedway', x: 500, y: 330, scale: 1.5, rot: 20 },
   { name: 'Darlington Raceway', x: 150, y: 380, scale: 1.4, rot: -18 },
   { name: 'Martinsville Speedway', x: 330, y: 230, scale: 1.2, rot: 35 },
