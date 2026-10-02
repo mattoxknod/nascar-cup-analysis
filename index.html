@@ -10,6 +10,7 @@
 <script src="js/ticker.js"></script>
 </head>
 <body class="has-track-bg">
+<div class="sticky-head" id="stickyHead">
 <header class="topbar">
   <a class="brand" href="index.html">
     <span class="mark">CUP<span class="accent-dot">&middot;</span>ATLAS</span>
@@ -26,6 +27,7 @@
   </button>
 </header>
 <div class="points-ticker" id="pointsTicker" aria-label="Current NASCAR Cup Series points standings"></div>
+</div>
 
 <main class="page-wrap">
   <section class="report-hero">
@@ -49,7 +51,7 @@
 
   <article id="findings">
 
-    <section class="finding">
+    <section class="finding" id="finding1" data-finding="1">
       <div class="finding-num">Finding 01</div>
       <h2>Richard Petty's 200 Wins Stand Alone</h2>
       <div class="finding-body">
@@ -67,7 +69,7 @@
       <p class="chart-caption">Top 10 drivers by career wins, all 2,822 races, 1949&ndash;2025.</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding2" data-finding="2">
       <div class="finding-num">Finding 02</div>
       <h2>The Manufacturer Wars Changed Sides Four Times</h2>
       <div class="finding-body">
@@ -84,7 +86,7 @@
       <p class="chart-caption">Wins per decade, top 5 manufacturers by all-time wins.</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding3" data-finding="3">
       <div class="finding-num">Finding 03</div>
       <h2>One Team Has Fielded Almost 60% More Wins Than Anyone Else</h2>
       <div class="finding-body">
@@ -101,7 +103,7 @@
       <p class="chart-caption">Top 10 car owners by career wins.</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding4" data-finding="4">
       <div class="finding-num">Finding 04</div>
       <h2>Winning Speeds Climbed for Forty Years, Then Stopped</h2>
       <div class="finding-body">
@@ -118,7 +120,7 @@
       <p class="chart-caption">Average winning speed (mph) by decade, one value per race (the winner's row).</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding5" data-finding="5">
       <div class="finding-num">Finding 05</div>
       <h2>The Purse Data Goes Dark in 2016</h2>
       <div class="finding-body">
@@ -136,7 +138,7 @@
       <p class="chart-caption">Total reported driver winnings by year, summed across every entrant, 1972&ndash;2015.</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding6" data-finding="6">
       <div class="finding-num">Finding 06</div>
       <h2>Five Tracks Have Hosted a Quarter of Every Race Ever Run</h2>
       <div class="finding-body">
@@ -155,7 +157,7 @@
       <p class="chart-caption">Top 15 tracks by races hosted, 1949&ndash;2025.</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding7" data-finding="7">
       <div class="finding-num">Finding 07</div>
       <h2>Races Got More Competitive, Not Cleaner</h2>
       <div class="finding-body">
@@ -172,7 +174,7 @@
       <p class="chart-caption">Average cautions and lead changes per race by decade, one value per race (the winner's row).</p>
     </section>
 
-    <section class="finding">
+    <section class="finding" id="finding8" data-finding="8">
       <div class="finding-num">Finding 08</div>
       <h2>Cars Finish Races Far More Often Than They Used To</h2>
       <div class="finding-body">
@@ -322,6 +324,59 @@
     return { x: d, y: dRows.length ? (100 * finished / dRows.length) : null };
   }).filter(p => p.y !== null);
   C.renderLineChart(document.getElementById('chart8'), [{ name: 'Finish rate', color: 'var(--accent)', points: finishPts }], { yFmt: v => Math.round(v) + '%', xFmt: decadeLabel });
+
+  // ---- Scroll-driven ticker: as each finding scrolls through the upper
+  // part of the screen, the ticker switches to data that matches it -
+  // findings without an obvious ticker angle (6-8) just fall back to the
+  // points standings, same as the hero and closing section. ----
+  const T = window.NASCARTicker;
+  if (T && 'IntersectionObserver' in window) {
+    const top40Drivers = N.aggregate(rows, 'driver', 'wins', { limit: 40 })
+      .map(d => ({ name: d.name, value: d.value + (d.value === 1 ? ' win' : ' wins') }));
+    const top20Owners = N.aggregate(rows, 'owner', 'wins', { limit: 20 })
+      .map(d => ({ name: d.name, value: d.value + (d.value === 1 ? ' win' : ' wins'), icon: L.teamLogo(d.name) }));
+    const mfrByDecade = decades.map(d => {
+      const dWins = wins.filter(r => r.decade === d);
+      const top = N.aggregate(dWins, 'manufacturer', 'count', { limit: 1 })[0];
+      if (!top) return null;
+      return { period: decadeLabel(d), name: top.name, icon: L.manufacturerLogo(top.name), value: top.value + (top.value === 1 ? ' win' : ' wins') };
+    }).filter(Boolean);
+    const speedByDecade = speedPts.map(p => ({ period: decadeLabel(p.x), value: Math.round(p.y) + ' mph avg' }));
+    const winningsByYear = moneyPts.map(p => ({ period: String(p.x), value: N.fmtMoney(p.y) }));
+
+    const modes = {
+      standings: () => T.showStandings(),
+      drivers: () => T.showRanked('ALL-TIME WINS', 'Top 40 drivers', top40Drivers),
+      owners: () => T.showRanked('ALL-TIME WINS', 'Top 20 owners', top20Owners),
+      manufacturers: () => T.showTimeline('BY DECADE', 'Leading manufacturer', mfrByDecade),
+      speed: () => T.showTimeline('BY DECADE', 'Avg winning speed', speedByDecade),
+      winnings: () => T.showTimeline('BY SEASON', 'Total purse winnings', winningsByYear)
+    };
+    const sectionModes = [
+      ['headlineStats', 'standings'],
+      ['finding1', 'drivers'],
+      ['finding2', 'manufacturers'],
+      ['finding3', 'owners'],
+      ['finding4', 'speed'],
+      ['finding5', 'winnings'],
+      ['finding6', 'standings'],
+      ['finding7', 'standings'],
+      ['finding8', 'standings']
+    ];
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const mode = entry.target.__tickerMode;
+        if (mode && modes[mode]) modes[mode]();
+      });
+    }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+    sectionModes.forEach(([id, mode]) => {
+      const el = document.getElementById(id);
+      if (el) { el.__tickerMode = mode; observer.observe(el); }
+    });
+    const closing = document.querySelector('.closing-section');
+    if (closing) { closing.__tickerMode = 'standings'; observer.observe(closing); }
+  }
 })();
 </script>
 </body>

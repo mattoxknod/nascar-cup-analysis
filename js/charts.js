@@ -62,10 +62,13 @@ window.NASCARCharts = (function () {
       const last = pts[pts.length - 1];
       linesSvg += '<circle cx="' + xScale(last.x) + '" cy="' + yScale(last.y) + '" r="4" fill="' + s.color + '"/>';
     }
-    // s.icon, if a series provides one (a manufacturer/team logo URL), is
-    // shown in the legend instead of a plain color swatch.
+    // The color swatch is what ties a legend entry back to its line on the
+    // chart, so it always shows - s.icon (a manufacturer/team logo), when a
+    // series provides one, sits inside it as a bonus, not a replacement;
+    // dropping the swatch for the logo alone left no way to match a brand
+    // to its color once two logos were hard to tell apart at a glance.
     const legend = series.length > 1 ? '<div class="line-legend">' + series.map(s =>
-      '<span>' + (s.icon ? '<img class="line-legend-icon" src="' + s.icon + '" alt="">' : '<i style="background:' + s.color + '"></i>') + s.name + '</span>'
+      '<span><i style="background:' + s.color + '">' + (s.icon ? '<img class="line-legend-icon" src="' + s.icon + '" alt="">' : '') + '</i>' + s.name + '</span>'
     ).join('') + '</div>' : '';
 
     el.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" class="line-chart-svg" preserveAspectRatio="xMidYMid meet">' +

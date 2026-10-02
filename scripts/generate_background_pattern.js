@@ -34,18 +34,34 @@ const trackPlacements = [
   { name: 'Rockingham Speedway', x: 710, y: 30, scale: 0.45, rot: -15 },
   { name: 'North Wilkesboro Speedway', x: 300, y: 90, scale: 0.4, rot: 18 },
   { name: 'Michigan International Speedway', x: 640, y: 600, scale: 0.5, rot: -30 },
-  { name: 'Homestead-Miami Speedway', x: 150, y: 600, scale: 0.5, rot: 22 }
+  { name: 'Homestead-Miami Speedway', x: 150, y: 600, scale: 0.5, rot: 22 },
+  { name: 'Chicagoland Speedway', x: 480, y: 350, scale: 0.45, rot: 22 },
+  { name: 'Dover Motor Speedway', x: 150, y: 350, scale: 0.45, rot: -30 },
+  { name: 'Kansas Speedway', x: 540, y: 20, scale: 0.35, rot: 15 },
+  { name: 'Las Vegas Motor Speedway', x: 250, y: 520, scale: 0.45, rot: -16 },
+  { name: 'Nashville Superspeedway', x: 700, y: 350, scale: 0.4, rot: 28 },
+  { name: 'New Hampshire Motor Speedway', x: 350, y: 480, scale: 0.4, rot: -22 },
+  { name: 'Atlanta Motor Speedway', x: 180, y: 150, scale: 0.45, rot: 33 },
+  { name: 'Iowa Speedway', x: 450, y: 560, scale: 0.35, rot: 10 },
+  { name: 'Auto Club Speedway', x: 30, y: 420, scale: 0.4, rot: -8 },
+  { name: 'World Wide Technology Raceway at Gateway', x: 620, y: 220, scale: 0.4, rot: 18 }
 ];
 
-// Historic logo marks, from NASCAR's own branding history plus the 1980s
-// Winston Cup Series era logo - interspersed among the track outlines.
+// Historic logo marks, from NASCAR's own branding history, the 1980s
+// Winston Cup Series era logo, and the most recent Daytona 500 event logo -
+// interspersed among the track outlines. A couple of the smaller era marks
+// repeat at a second spot for extra texture, the same way the track
+// outlines already overlap and repeat across the tile.
 const logoPlacements = [
   { file: 'nascar-1948.png', x: 160, y: 170, size: 85, rot: -6 },
   { file: 'nascar-1956.png', x: 610, y: 420, size: 80, rot: 10 },
   { file: 'nascar-1964.png', x: 50, y: 540, size: 85, rot: -12 },
   { file: 'nascar-1976.png', x: 470, y: 130, size: 90, rot: 8 },
   { file: 'nascar-2017.png', x: 300, y: 530, size: 100, rot: -5 },
-  { file: 'winston-cup.png', x: 700, y: 260, size: 80, rot: 14 }
+  { file: 'winston-cup.png', x: 700, y: 260, size: 80, rot: 14 },
+  { file: 'daytona-500-2026.png', x: 400, y: 350, size: 95, rot: -10 },
+  { file: 'nascar-1948.png', x: 680, y: 620, size: 70, rot: 18 },
+  { file: 'winston-cup.png', x: 230, y: 60, size: 65, rot: -14 }
 ];
 
 function parseViewBox(vb) {

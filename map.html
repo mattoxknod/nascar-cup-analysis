@@ -44,7 +44,7 @@
     <div class="map-wrap">
       <svg id="usMap" viewBox="0 0 975 760" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of North America, focused on the United States, with a marker for every NASCAR Cup Series track including those in Canada and Mexico"></svg>
       <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a state to see its tracks &middot; click a track</div>
-      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Markers are shaped like the track itself where that outline is known, a diamond otherwise. Zoom in on a cluster to spread markers apart and reveal names.<br><span class="has-outline-dot" style="position:static;display:inline-block;"></span> Track list entries with this dot have a known track outline.</div>
+      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size &amp; glow</strong><br>Both scale with races hosted at that track, like a population-density map. Markers are shaped like the track itself where that outline is known, a diamond otherwise. Zoom in on a cluster to spread markers apart and reveal names. Click a state to rise a bar at each of its tracks, height by races hosted.<br><span class="has-outline-dot" style="position:static;display:inline-block;"></span> Track list entries with this dot have a known track outline.</div>
       <aside class="detail-panel" id="detailPanel" hidden>
         <div class="detail-panel-actions">
           <button id="expandDetail" type="button" aria-label="Expand to full page">
@@ -77,6 +77,18 @@
   // scale/center as before - the US portion is pixel-identical to the old map.
   const projection = d3.geoAlbers().scale(1250).translate([487.5, 305]);
   const path = d3.geoPath(projection);
+
+  // Two radial gradients used by every track's glow halo and (when a state
+  // is selected) by its rising bar - a warm, light-pollution-map glow:
+  // bright white-gold core fading through amber to nothing.
+  const defs = svg.append('defs');
+  const glowStops = [[0, '#fffaf0', 1], [35, '#ffcf6b', 0.65], [100, '#ff8a3d', 0]];
+  const pinGlow = defs.append('radialGradient').attr('id', 'pinGlow');
+  glowStops.forEach(([off, color, op]) => pinGlow.append('stop').attr('offset', off + '%').attr('stop-color', color).attr('stop-opacity', op));
+  const barGlow = defs.append('linearGradient').attr('id', 'barGlow').attr('x1', '0').attr('y1', '1').attr('x2', '0').attr('y2', '0');
+  barGlow.append('stop').attr('offset', '0%').attr('stop-color', '#ff8a3d').attr('stop-opacity', 0.85);
+  barGlow.append('stop').attr('offset', '100%').attr('stop-color', '#fffaf0').attr('stop-opacity', 1);
+
   const zoomLayer = svg.append('g');
 
   // Canada + Mexico first (so US states draw on top at the border) as plain
@@ -128,6 +140,25 @@
     .attr('data-y', t => projection([t.lon, t.lat])[1])
     .on('click', (ev, t) => selectTrack(t))
     .on('keydown', (ev, t) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectTrack(t); } });
+
+  // Population-density/light-pollution look: every track gets a glow halo
+  // sized by races hosted, and (while its state is selected - see
+  // selectState below) a bar that rises straight up from it, also sized by
+  // races hosted, like a 3D density prism map. Both are appended before the
+  // track's own shape/diamond so that shape paints on top, as the "light
+  // source" capping the bar.
+  const glowScale = d3.scaleSqrt().domain([1, maxRaces]).range([9, 46]);
+  const barScale = d3.scaleSqrt().domain([1, maxRaces]).range([10, 110]);
+  const BAR_WIDTH = 5;
+  pinGroups.append('rect')
+    .attr('class', 'track-bar')
+    .attr('x', -BAR_WIDTH / 2)
+    .attr('width', BAR_WIDTH)
+    .attr('y', t => -barScale(t.numRaces))
+    .attr('height', t => barScale(t.numRaces));
+  pinGroups.append('circle')
+    .attr('class', 'pin-glow')
+    .attr('r', t => glowScale(t.numRaces));
 
   // Tracks with a recorded real outline (see data/track_shapes.json) are drawn
   // as that shape, scaled to a common size - so Daytona's tri-oval, Darlington's
@@ -222,6 +253,7 @@
     stateFilterLabel.textContent = name + ' — ' + count + (count === 1 ? ' track' : ' tracks');
     stateFilterBanner.hidden = false;
     pinGroups.classed('state-dimmed', t => trackState.get(t) !== name);
+    pinGroups.classed('bar-grown', t => trackState.get(t) === name);
     mapLayout.classList.remove('sidebar-collapsed');
     sidebarToggle.setAttribute('aria-label', 'Collapse track list');
     renderTrackList();
@@ -233,6 +265,7 @@
     stateShapes.classed('selected', false);
     stateFilterBanner.hidden = true;
     pinGroups.classed('state-dimmed', false);
+    pinGroups.classed('bar-grown', false);
     renderTrackList();
   }
 
