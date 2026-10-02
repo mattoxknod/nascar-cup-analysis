@@ -26,20 +26,24 @@
 </header>
 
 <div id="view-map-page">
-  <div class="map-layout" id="mapLayout">
+  <div class="map-layout sidebar-collapsed" id="mapLayout">
     <aside class="track-list-panel" id="trackListPanel">
       <div class="panel-head">
         <h2>Tracks</h2>
         <input type="search" id="trackSearch" placeholder="Search by name or city&hellip;" aria-label="Search tracks">
       </div>
+      <div class="state-filter-banner" id="stateFilterBanner" hidden>
+        <span id="stateFilterLabel"></span>
+        <button type="button" id="stateFilterClear">Show all tracks</button>
+      </div>
       <div class="track-list" id="trackList"></div>
-      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Collapse track list">
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Expand track list">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
     </aside>
     <div class="map-wrap">
       <svg id="usMap" viewBox="0 0 975 760" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of North America, focused on the United States, with a marker for every NASCAR Cup Series track including those in Canada and Mexico"></svg>
-      <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a track</div>
+      <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a state to see its tracks &middot; click a track</div>
       <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Markers are shaped like the track itself where that outline is known, a diamond otherwise. Zoom in on a cluster to spread markers apart and reveal names.<br><span class="has-outline-dot" style="position:static;display:inline-block;"></span> Track list entries with this dot have a known track outline.</div>
       <aside class="detail-panel" id="detailPanel" hidden>
         <div class="detail-panel-actions">
@@ -85,9 +89,25 @@
     .attr('class', 'neighbor-country').attr('d', path);
 
   const statesGeo = topojson.feature(us, us.objects.states).features;
-  zoomLayer.append('g').attr('class', 'states')
-    .selectAll('path').data(statesGeo).join('path')
-    .attr('class', 'state').attr('d', path);
+  const statesG = zoomLayer.append('g').attr('class', 'states');
+  const stateShapes = statesG.selectAll('path').data(statesGeo).join('path')
+    .attr('class', 'state').attr('d', path)
+    .attr('tabindex', 0).attr('role', 'button')
+    .attr('aria-label', d => d.properties.name)
+    .on('click', (ev, d) => { ev.stopPropagation(); selectState(d); })
+    .on('keydown', (ev, d) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectState(d); } });
+
+  // Which state (if any) each track falls in, by point-in-polygon against
+  // the real state geometry - more reliable than parsing the "City, ST"
+  // location string (which isn't even a US state for the Canada/Mexico
+  // tracks). Those non-US tracks simply match no state, which is correct:
+  // selecting a state is a US-only interaction on this US-focused map.
+  const trackState = new Map();
+  tracks.forEach(t => {
+    const pt = [t.lon, t.lat];
+    const hit = statesGeo.find(f => d3.geoContains(f, pt));
+    if (hit) trackState.set(t, hit.properties.name);
+  });
 
   const maxRaces = d3.max(tracks, t => t.numRaces);
   // marker size by race count (sqrt scale for perceptual area).
@@ -183,6 +203,39 @@
     sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand track list' : 'Collapse track list');
   });
 
+  // Click a state to "pick it up" (lifted above its neighbors, with a
+  // drop shadow) and filter both the map's pins and the sidebar list down
+  // to just that state's tracks; click it again, or the banner's clear
+  // button, to put it back down and show everything.
+  let selectedStateName = null;
+  const stateFilterBanner = document.getElementById('stateFilterBanner');
+  const stateFilterLabel = document.getElementById('stateFilterLabel');
+  document.getElementById('stateFilterClear').addEventListener('click', clearStateSelection);
+
+  function selectState(feature) {
+    const name = feature.properties.name;
+    if (selectedStateName === name) { clearStateSelection(); return; }
+    selectedStateName = name;
+    stateShapes.classed('selected', d => d === feature);
+    stateShapes.filter(d => d === feature).raise();
+    const count = tracks.filter(t => trackState.get(t) === name).length;
+    stateFilterLabel.textContent = name + ' — ' + count + (count === 1 ? ' track' : ' tracks');
+    stateFilterBanner.hidden = false;
+    pinGroups.classed('state-dimmed', t => trackState.get(t) !== name);
+    mapLayout.classList.remove('sidebar-collapsed');
+    sidebarToggle.setAttribute('aria-label', 'Collapse track list');
+    renderTrackList();
+  }
+
+  function clearStateSelection() {
+    if (selectedStateName === null) return;
+    selectedStateName = null;
+    stateShapes.classed('selected', false);
+    stateFilterBanner.hidden = true;
+    pinGroups.classed('state-dimmed', false);
+    renderTrackList();
+  }
+
   function clearSelection() { pinGroups.classed('selected', false); document.querySelectorAll('.track-row.selected').forEach(r => r.classList.remove('selected')); }
 
   const moneyFmt = v => { const n = Number(String(v).replace(/,/g, '')); return n ? '$' + n.toLocaleString('en-US') : '&mdash;'; };
@@ -246,15 +299,17 @@
 
   const trackListEl = document.getElementById('trackList');
   const sortedTracks = tracks.slice().sort((a, b) => b.numRaces - a.numRaces);
-  function renderTrackList(filterStr) {
-    const f = (filterStr || '').toLowerCase().trim();
-    const list = f ? sortedTracks.filter(t => t.name.toLowerCase().includes(f) || t.location.toLowerCase().includes(f)) : sortedTracks;
+  function renderTrackList() {
+    const f = (document.getElementById('trackSearch').value || '').toLowerCase().trim();
+    let list = selectedStateName ? sortedTracks.filter(t => trackState.get(t) === selectedStateName) : sortedTracks;
+    if (f) list = list.filter(t => t.name.toLowerCase().includes(f) || t.location.toLowerCase().includes(f));
     trackListEl.innerHTML = list.map(t =>
       '<button class="track-row" data-name="' + t.name.replace(/"/g, '&quot;') + '">' +
         '<span class="n">' + (trackShapes[t.name] ? '<span class="has-outline-dot" title="Outline available"></span>' : '') + t.name + '</span>' +
         '<span class="c">' + t.numRaces + '</span>' +
       '</button>'
-    ).join('');
+    ).join('') || '<p class="empty-note" style="padding:14px;white-space:normal;">' +
+      (selectedStateName ? 'No Cup Series tracks on record in ' + selectedStateName + '.' : 'No tracks match your search.') + '</p>';
     trackListEl.querySelectorAll('.track-row').forEach(btn => {
       btn.addEventListener('click', () => {
         const t = tracks.find(x => x.name === btn.dataset.name);
@@ -262,8 +317,8 @@
       });
     });
   }
-  renderTrackList('');
-  document.getElementById('trackSearch').addEventListener('input', (e) => renderTrackList(e.target.value));
+  renderTrackList();
+  document.getElementById('trackSearch').addEventListener('input', renderTrackList);
 })();
 </script>
 </body>

@@ -1,0 +1,92 @@
+{
+  "hendrick-motorsports": {
+    "name": "Hendrick Motorsports",
+    "file": "hendrick-motorsports.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Hendrick_Motorsports_logo.png"
+  },
+  "team-penske": {
+    "name": "Team Penske",
+    "file": "team-penske.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Team_Penske_logo.svg"
+  },
+  "joe-gibbs-racing": {
+    "name": "Joe Gibbs Racing",
+    "file": "joe-gibbs-racing.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Joe_Gibbs_Racing_logo.png"
+  },
+  "trackhouse-racing": {
+    "name": "Trackhouse Racing",
+    "file": "trackhouse-racing.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Trackhouse_Racing_Logo.png"
+  },
+  "23xi-racing": {
+    "name": "23XI Racing",
+    "file": "23xi-racing.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:23XI_racing_logo_(2023).png"
+  },
+  "rfk-racing": {
+    "name": "RFK Racing",
+    "file": "rfk-racing.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:RFK_logo.png"
+  },
+  "richard-childress-racing": {
+    "name": "Richard Childress Racing",
+    "file": "richard-childress-racing.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Richard_Childress_Racing_logo.png"
+  },
+  "front-row-motorsports": {
+    "name": "Front Row Motorsports",
+    "file": "front-row-motorsports.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Front_Row_Motorsports_Logo.png"
+  },
+  "spire-motorsports": {
+    "name": "Spire Motorsports",
+    "file": "spire-motorsports.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Spire_Motorsports_yellow_logo.png"
+  },
+  "kaulig-racing": {
+    "name": "Kaulig Racing",
+    "file": "kaulig-racing.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Kaulig_racing_new_logo.png"
+  },
+  "legacy-motor-club": {
+    "name": "Legacy Motor Club",
+    "file": "legacy-motor-club.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Legacy_Motor_Club_new_logo.png"
+  },
+  "wood-brothers-racing": {
+    "name": "Wood Brothers Racing",
+    "file": "wood-brothers-racing.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Wood_Brothers_Racing.png"
+  },
+  "rick-ware-racing": {
+    "name": "Rick Ware Racing",
+    "file": "rick-ware-racing.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:RickWareRacingLogo.png"
+  },
+  "hyak-motorsports": {
+    "name": "HYAK Motorsports",
+    "file": "hyak-motorsports.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Hyak_Motorsports_logo.png"
+  },
+  "haas-factory-team": {
+    "name": "Haas Factory Team",
+    "file": "haas-factory-team.png",
+    "found": true,
+    "source": "https://en.wikipedia.org/wiki/File:Haas_Factory_Team_logo.png"
+  }
+}

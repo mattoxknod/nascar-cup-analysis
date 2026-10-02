@@ -125,11 +125,13 @@
 <script src="vendor/papaparse.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/charts.js"></script>
+<script src="js/logos.js"></script>
 <script>
 (async function () {
   "use strict";
   const N = window.NASCAR;
   const C = window.NASCARCharts;
+  const L = window.NASCARLogos;
   const rows = await N.loadData();
 
   const distinct = (field) => [...new Set(rows.map(r => r[field]).filter(v => v !== '' && v != null))];
@@ -181,6 +183,10 @@
       '<div class="panel-controls">' +
         '<select id="' + p.id + '-measure" aria-label="Measure for ' + p.title + '"></select>' +
         '<select id="' + p.id + '-breakdown" aria-label="Breakdown for ' + p.title + '"></select>' +
+        '<select id="' + p.id + '-view" aria-label="View for ' + p.title + '">' +
+          '<option value="ranked">Ranked</option>' +
+          '<option value="trend">Trend by season</option>' +
+        '</select>' +
       '</div></div>' +
       '<div id="' + p.id + '-chart"></div>' +
     '</div>'
@@ -192,9 +198,42 @@
     const bSel = document.getElementById(p.id + '-breakdown');
     Object.entries(N.BREAKDOWNS).forEach(([k, v]) => bSel.add(new Option(v.label, k)));
     bSel.value = p.defaultBreakdown;
+    const vSel = document.getElementById(p.id + '-view');
     mSel.addEventListener('change', render);
     bSel.addEventListener('change', render);
+    vSel.addEventListener('change', render);
   });
+
+  // Trend view: for the top N entities in the current breakdown (by the
+  // current measure, within the active filters), one line per season - so
+  // "is Chevrolet winning more lately, or just overall" has an answer, not
+  // just a static end-state ranking. Single pass over filteredRows (not one
+  // .filter() per name x year) so this stays fast even at 100k+ rows.
+  const TREND_CAT_COLORS = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
+  const TREND_TOP_N = 5;
+  function computeTrendSeries(filteredRows, breakdownKey, measureKey) {
+    const bd = N.BREAKDOWNS[breakdownKey];
+    const ms = N.MEASURES[measureKey];
+    const top = N.aggregate(filteredRows, breakdownKey, measureKey, { limit: TREND_TOP_N, minN: 1 }).map(d => d.name);
+    const topSet = new Set(top);
+    const nested = new Map();
+    for (const r of filteredRows) {
+      const name = bd.key(r);
+      if (!topSet.has(name)) continue;
+      if (!nested.has(name)) nested.set(name, new Map());
+      const byYear = nested.get(name);
+      if (!byYear.has(r.year)) byYear.set(r.year, []);
+      byYear.get(r.year).push(r);
+    }
+    return top.map((name, i) => {
+      const byYear = nested.get(name) || new Map();
+      const points = [...byYear.entries()]
+        .map(([y, g]) => ({ x: y, y: ms.calc(g) }))
+        .filter(p => p.y !== null && !Number.isNaN(p.y))
+        .sort((a, b) => a.x - b.x);
+      return { name, color: TREND_CAT_COLORS[i % TREND_CAT_COLORS.length], icon: L.logoForCategory(breakdownKey, name), points };
+    });
+  }
 
   function fmtForMeasure(measureKey) {
     const m = N.MEASURES[measureKey];
@@ -206,8 +245,16 @@
   function renderPanel(p, filteredRows) {
     const measureKey = document.getElementById(p.id + '-measure').value;
     const breakdownKey = document.getElementById(p.id + '-breakdown').value;
+    const view = document.getElementById(p.id + '-view').value;
+    const chartEl = document.getElementById(p.id + '-chart');
+    if (view === 'trend') {
+      const series = computeTrendSeries(filteredRows, breakdownKey, measureKey);
+      C.renderLineChart(chartEl, series, { yFmt: fmtForMeasure(measureKey), xFmt: v => String(v) });
+      return;
+    }
     const data = N.aggregate(filteredRows, breakdownKey, measureKey, { limit: 12, minN: measureKey === 'medianFinish' || measureKey === 'avgFinish' || measureKey === 'winRate' ? 5 : 1 });
-    C.renderBarList(document.getElementById(p.id + '-chart'), data, { fmt: fmtForMeasure(measureKey) });
+    const iconFn = (breakdownKey === 'manufacturer' || breakdownKey === 'owner') ? (name => L.logoForCategory(breakdownKey, name)) : null;
+    C.renderBarList(chartEl, data, { fmt: fmtForMeasure(measureKey), iconFn });
   }
 
   // ---- summary tiles ----
@@ -330,9 +377,14 @@
       );
     }).join('');
 
+    const logoA = L.logoForCategory(category, nameA);
+    const logoB = L.logoForCategory(category, nameB);
+    const logoHtmlA = logoA ? '<img class="compare-logo" src="' + logoA + '" alt="">' : '';
+    const logoHtmlB = logoB ? '<img class="compare-logo" src="' + logoB + '" alt="">' : '';
+
     compareResultEl.innerHTML =
       '<div class="compare-grid">' +
-      '<div class="compare-header"><div class="name-a">' + nameA + '</div><div class="vs-label">vs</div><div class="name-b">' + nameB + '</div></div>' +
+      '<div class="compare-header"><div class="name-a">' + logoHtmlA + '<span>' + nameA + '</span></div><div class="vs-label">vs</div><div class="name-b">' + logoHtmlB + '<span>' + nameB + '</span></div></div>' +
       rowsHtml +
       '</div>';
   }
@@ -379,6 +431,7 @@
     PANEL_DEFS.forEach(p => {
       document.getElementById(p.id + '-measure').value = p.defaultMeasure;
       document.getElementById(p.id + '-breakdown').value = p.defaultBreakdown;
+      document.getElementById(p.id + '-view').value = 'ranked';
     });
     render();
   });

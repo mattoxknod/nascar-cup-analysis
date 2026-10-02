@@ -1,0 +1,50 @@
+{
+  "chevrolet": {
+    "name": "Chevrolet",
+    "file": "chevrolet.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Chevrolet_bowtie_2023.svg"
+  },
+  "toyota": {
+    "name": "Toyota",
+    "file": "toyota.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Toyota_logo_(Red).svg"
+  },
+  "ford": {
+    "name": "Ford",
+    "file": "ford.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Ford_Motor_Company_Logo.svg"
+  },
+  "dodge": {
+    "name": "Dodge",
+    "file": "dodge.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Dodge_logo.svg"
+  },
+  "pontiac": {
+    "name": "Pontiac",
+    "file": "pontiac.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Pontiac_logo_and_wordmark_1981.svg"
+  },
+  "buick": {
+    "name": "Buick",
+    "file": "buick.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Buick-logo.svg"
+  },
+  "oldsmobile": {
+    "name": "Oldsmobile",
+    "file": "oldsmobile.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Oldsmobile_logo_used_from_1981_until_1997.svg"
+  },
+  "plymouth": {
+    "name": "Plymouth",
+    "file": "plymouth.png",
+    "found": true,
+    "source": "https://commons.wikimedia.org/wiki/File:Plymouth_brand_logo_1964.png"
+  }
+}

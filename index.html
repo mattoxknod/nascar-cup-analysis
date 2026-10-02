@@ -259,12 +259,14 @@
 <script src="vendor/papaparse.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/charts.js"></script>
+<script src="js/logos.js"></script>
 <script>
 (async function () {
   "use strict";
   const rows = await window.NASCAR.loadData();
   const N = window.NASCAR;
   const C = window.NASCARCharts;
+  const L = window.NASCARLogos;
   const wins = rows.filter(r => r.finishPos === 1);
   const decades = [...new Set(rows.map(r => r.decade))].sort((a, b) => a - b);
   const decadeLabel = d => d + 's';
@@ -282,13 +284,13 @@
   const CAT = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
   const top5Mfr = N.aggregate(rows, 'manufacturer', 'wins', { limit: 5 }).map(d => d.name);
   const mfrSeries = top5Mfr.map((m, i) => ({
-    name: m, color: CAT[i],
+    name: m, color: CAT[i], icon: L.manufacturerLogo(m),
     points: decades.map(d => ({ x: d, y: wins.filter(r => r.decade === d && r.manufacturer === m).length }))
   }));
   C.renderLineChart(document.getElementById('chart2'), mfrSeries, { yFmt: v => Math.round(v), xFmt: decadeLabel });
 
   // ---- Finding 3: top owners by wins ----
-  C.renderBarList(document.getElementById('chart3'), N.aggregate(rows, 'owner', 'wins', { limit: 10 }), { fmt: v => v, color: 'var(--accent)' });
+  C.renderBarList(document.getElementById('chart3'), N.aggregate(rows, 'owner', 'wins', { limit: 10 }), { fmt: v => v, color: 'var(--accent)', iconFn: L.teamLogo });
 
   // ---- Finding 4: avg winning speed by decade ----
   const speedPts = decades.map(d => {

@@ -4,7 +4,9 @@
 window.NASCARCharts = (function () {
   "use strict";
 
-  // data: [{name, value}], opts: {fmt, color, max}
+  // data: [{name, value}], opts: {fmt, color, max, iconFn}. iconFn(name), if
+  // given, may return a logo image URL to show beside the bar's label (used
+  // for manufacturer/team breakdowns) - rows with no match just get the text.
   function renderBarList(el, data, opts) {
     opts = opts || {};
     const fmt = opts.fmt || (v => v);
@@ -12,9 +14,11 @@ window.NASCARCharts = (function () {
     const colorFn = opts.colorFn || (() => opts.color || 'var(--accent)');
     el.innerHTML = data.map((d, i) => {
       const pct = Math.max((d.value / max) * 100, d.value > 0 ? 2 : 0);
+      const iconUrl = opts.iconFn && opts.iconFn(d.name);
+      const icon = iconUrl ? '<img class="bar-icon" src="' + iconUrl + '" alt="" loading="lazy">' : '';
       return '<div class="bar-row"><div class="rank">' + (i + 1) + '</div>' +
         '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + colorFn(d.name) + '"></div>' +
-        '<div class="bar-label">' + d.name + '</div></div>' +
+        '<div class="bar-label">' + icon + '<span>' + d.name + '</span></div></div>' +
         '<div class="bar-value">' + fmt(d.value) + '</div></div>';
     }).join('') || '<p class="empty-note">No rows match the current filters.</p>';
   }
@@ -58,7 +62,11 @@ window.NASCARCharts = (function () {
       const last = pts[pts.length - 1];
       linesSvg += '<circle cx="' + xScale(last.x) + '" cy="' + yScale(last.y) + '" r="4" fill="' + s.color + '"/>';
     }
-    const legend = series.length > 1 ? '<div class="line-legend">' + series.map(s => '<span><i style="background:' + s.color + '"></i>' + s.name + '</span>').join('') + '</div>' : '';
+    // s.icon, if a series provides one (a manufacturer/team logo URL), is
+    // shown in the legend instead of a plain color swatch.
+    const legend = series.length > 1 ? '<div class="line-legend">' + series.map(s =>
+      '<span>' + (s.icon ? '<img class="line-legend-icon" src="' + s.icon + '" alt="">' : '<i style="background:' + s.color + '"></i>') + s.name + '</span>'
+    ).join('') + '</div>' : '';
 
     el.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" class="line-chart-svg" preserveAspectRatio="xMidYMid meet">' +
       gridSvg + xAxisSvg + linesSvg + '</svg>' + legend;
