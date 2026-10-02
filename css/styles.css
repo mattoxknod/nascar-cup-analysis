@@ -117,18 +117,21 @@ p { line-height: 1.6; color: var(--ink-2); }
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
 
-/* ---------- Points ticker ---------- */
+/* ---------- Points ticker ----------
+   The ticker's track is deliberately dark in BOTH themes (a stock-ticker
+   tape look, not a themed surface), so its text uses fixed colors here
+   rather than the --ink/--page tokens, which flip meaning between themes
+   and would otherwise go invisible (dark text on a dark tape) in dark mode. */
 .points-ticker {
   display: flex; align-items: stretch;
-  background: var(--ink); color: var(--page);
+  background: #0b0b0b; color: #f2f1ec;
   border-bottom: 2px solid var(--accent);
   overflow: hidden;
 }
-:root[data-theme="dark"] .points-ticker, :root:not([data-theme="light"]) .points-ticker { background: #000; }
 .ticker-label {
   flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center;
   padding: 7px 14px; background: var(--accent); color: var(--accent-ink);
-  border-right: 2px solid var(--ink);
+  border-right: 2px solid #0b0b0b;
 }
 .ticker-label-main { font-family: "Big Shoulders Display", sans-serif; font-weight: 900; font-size: 0.9rem; letter-spacing: 0.04em; line-height: 1.1; }
 .ticker-label-sub { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.85; line-height: 1.2; }
@@ -151,11 +154,15 @@ p { line-height: 1.6; color: var(--ink-2); }
 }
 .ticker-pos {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 22px; height: 22px; border-radius: 5px; padding: 0 4px;
-  font-weight: 900; font-size: 0.78rem; color: #0b0b0b;
+  min-width: 24px; height: 22px; border-radius: 5px; padding: 0 4px;
+  font-family: "Anton", "Big Shoulders Display", sans-serif;
+  font-weight: 400; font-size: 0.9rem; color: #0b0b0b;
 }
-.ticker-name { font-weight: 700; font-size: 0.92rem; letter-spacing: 0.01em; }
-.ticker-points { font-weight: 800; font-size: 0.92rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ticker-name { font-weight: 700; font-size: 0.92rem; letter-spacing: 0.01em; color: #f2f1ec; }
+.ticker-points {
+  font-family: "Anton", "Big Shoulders Display", sans-serif;
+  font-weight: 400; font-size: 1.05rem; color: #e3a73c; font-variant-numeric: tabular-nums;
+}
 .ticker-chase {
   font-size: 0.6rem; font-weight: 800; letter-spacing: 0.04em;
   background: var(--good); color: #06250a; padding: 2px 6px; border-radius: 4px;
@@ -277,14 +284,29 @@ body.page-map { display: flex; flex-direction: column; height: 100vh; }
 #usMap { width: 100%; height: 100%; display: block; cursor: grab; }
 #usMap:active { cursor: grabbing; }
 #usMap .state { fill: var(--surface-2); stroke: var(--grid); stroke-width: 0.6; }
+/* Canada and Mexico are drawn as plain country silhouettes (no state-level
+   detail) and kept visually quieter than the US states, so the map still
+   reads as "US-focused" even though it now extends past the border. */
+#usMap .neighbor-country { fill: var(--grid); stroke: var(--border); stroke-width: 0.6; }
 
-/* Track markers: a small "track oval" (stadium) shape instead of a plain dot,
-   counter-scaled on zoom so they stay a legible, constant screen size while
-   their positions still spread apart as you zoom into dense clusters. */
+/* Track markers: each track with a known real outline (see data/track_shapes.json)
+   is drawn as its own silhouette - Daytona's tri-oval reads as a tri-oval, Darlington's
+   egg reads as an egg - so shape itself tells tracks apart, not just position. Tracks
+   without a recorded outline fall back to a diamond. Both are counter-scaled on zoom
+   so they stay a legible, constant screen size while their positions still spread
+   apart as you zoom into dense clusters. */
 .pin-group { cursor: pointer; }
 .pin-mark { fill: var(--accent); fill-opacity: 0.74; stroke: var(--page); stroke-width: 1.1; transition: fill-opacity 0.1s; }
 .pin-group:hover .pin-mark { fill-opacity: 1; }
 .pin-group.selected .pin-mark { fill: var(--cat-8); fill-opacity: 1; stroke: var(--ink); stroke-width: 1.4; }
+.pin-shape :is(path, polygon, circle, ellipse, rect, polyline) {
+  fill: var(--accent); fill-opacity: 0.74; stroke: var(--page); stroke-width: 1.1;
+  vector-effect: non-scaling-stroke; transition: fill-opacity 0.1s;
+}
+.pin-group:hover .pin-shape :is(path, polygon, circle, ellipse, rect, polyline) { fill-opacity: 1; }
+.pin-group.selected .pin-shape :is(path, polygon, circle, ellipse, rect, polyline) {
+  fill: var(--cat-8); fill-opacity: 1; stroke: var(--ink); stroke-width: 1.6;
+}
 .pin-label {
   fill: var(--ink); font-size: 10.5px; font-family: "Public Sans", sans-serif; font-weight: 600;
   paint-order: stroke; stroke: var(--page); stroke-width: 3px; stroke-linejoin: round;
@@ -294,7 +316,7 @@ body.page-map { display: flex; flex-direction: column; height: 100vh; }
 
 .map-legend { position: absolute; left: 14px; bottom: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 0.72rem; color: var(--ink-2); box-shadow: var(--shadow); line-height: 1.5; }
 .map-legend strong { color: var(--ink); display: block; font-size: 0.72rem; margin-bottom: 4px; }
-.map-legend .legend-mark { display: inline-block; width: 16px; height: 8px; border-radius: 4px; background: var(--accent); opacity: 0.74; margin-right: 5px; vertical-align: middle; }
+.map-legend .legend-mark { display: inline-block; width: 10px; height: 10px; background: var(--accent); opacity: 0.74; transform: rotate(45deg); margin: 0 7px 0 3px; vertical-align: middle; }
 .map-hint { position: absolute; right: 14px; top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; font-size: 0.72rem; color: var(--muted); box-shadow: var(--shadow); }
 
 .detail-panel {

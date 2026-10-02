@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Public+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/styles.css">
 <script src="js/theme.js"></script>
-<script src="js/ticker.js"></script>
 </head>
 <body class="page-map">
 <header class="topbar">
@@ -25,7 +24,6 @@
     <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.4 14.7A8.5 8.5 0 0 1 9.3 3.6a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
   </button>
 </header>
-<div class="points-ticker" id="pointsTicker" aria-label="Current NASCAR Cup Series points standings"></div>
 
 <div id="view-map-page">
   <div class="map-layout" id="mapLayout">
@@ -40,9 +38,9 @@
       </button>
     </aside>
     <div class="map-wrap">
-      <svg id="usMap" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the United States with a marker for every NASCAR Cup Series track"></svg>
+      <svg id="usMap" viewBox="0 0 975 760" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of North America, focused on the United States, with a marker for every NASCAR Cup Series track including those in Canada and Mexico"></svg>
       <div class="map-hint">Scroll to zoom &middot; drag to pan &middot; click a track</div>
-      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Zoom in on a cluster to spread markers apart and reveal names.<br><span class="has-outline-dot" style="position:static;display:inline-block;"></span> Track list entries with this dot have a known track outline.</div>
+      <div class="map-legend"><span class="legend-mark"></span><strong style="display:inline">Marker size</strong><br>Races hosted at that track. Markers are shaped like the track itself where that outline is known, a diamond otherwise. Zoom in on a cluster to spread markers apart and reveal names.<br><span class="has-outline-dot" style="position:static;display:inline-block;"></span> Track list entries with this dot have a known track outline.</div>
       <aside class="detail-panel" id="detailPanel" hidden>
         <div class="detail-panel-actions">
           <button id="expandDetail" type="button" aria-label="Expand to full page">
@@ -62,16 +60,29 @@
 (async function () {
   "use strict";
 
-  const [tracks, us, trackShapes] = await Promise.all([
+  const [tracks, us, trackShapes, countries] = await Promise.all([
     fetch('data/tracks.json').then(r => r.json()),
     fetch('data/us-states-10m.json').then(r => r.json()),
-    fetch('data/track_shapes.json').then(r => r.json())
+    fetch('data/track_shapes.json').then(r => r.json()),
+    fetch('data/countries-110m.json').then(r => r.json())
   ]);
 
   const svg = d3.select('#usMap');
-  const projection = d3.geoAlbersUsa().scale(1250).translate([487.5, 305]);
+  // Plain Albers (not the clip-limited geoAlbersUsa composite, which only ever
+  // draws 3 fixed US-only insets) so Canada and Mexico render too, at the same
+  // scale/center as before - the US portion is pixel-identical to the old map.
+  const projection = d3.geoAlbers().scale(1250).translate([487.5, 305]);
   const path = d3.geoPath(projection);
   const zoomLayer = svg.append('g');
+
+  // Canada + Mexico first (so US states draw on top at the border) as plain
+  // country silhouettes - no state-level detail, and styled quieter in CSS -
+  // to keep the map reading as "US-focused" even though it now reaches further.
+  const countryFeatures = topojson.feature(countries, countries.objects.countries).features;
+  const neighborGeo = countryFeatures.filter(f => f.id === '124' || f.id === '484');
+  zoomLayer.append('g').attr('class', 'neighbors')
+    .selectAll('path').data(neighborGeo).join('path')
+    .attr('class', 'neighbor-country').attr('d', path);
 
   const statesGeo = topojson.feature(us, us.objects.states).features;
   zoomLayer.append('g').attr('class', 'states')
@@ -79,10 +90,13 @@
     .attr('class', 'state').attr('d', path);
 
   const maxRaces = d3.max(tracks, t => t.numRaces);
-  // marker WIDTH by race count (sqrt scale for perceptual area); height is a
-  // fixed fraction of width, giving a small "track oval" (stadium) shape.
-  const wScale = d3.scaleSqrt().domain([1, maxRaces]).range([7, 30]);
-  const hRatio = 0.42;
+  // marker size by race count (sqrt scale for perceptual area).
+  const sizeScale = d3.scaleSqrt().domain([1, maxRaces]).range([7, 30]);
+
+  function parseViewBox(vb) {
+    const [x, y, w, h] = vb.trim().split(/\s+/).map(Number);
+    return { x, y, w, h };
+  }
 
   const pinsG = zoomLayer.append('g').attr('class', 'pins');
   const pinGroups = pinsG.selectAll('g').data(tracks).join('g')
@@ -90,23 +104,39 @@
     .attr('tabindex', 0)
     .attr('role', 'button')
     .attr('aria-label', t => t.name + ', ' + t.numRaces + ' races')
-    .attr('data-x', t => (projection([t.lon, t.lat]) || [-1000, -1000])[0])
-    .attr('data-y', t => (projection([t.lon, t.lat]) || [-1000, -1000])[1])
+    .attr('data-x', t => projection([t.lon, t.lat])[0])
+    .attr('data-y', t => projection([t.lon, t.lat])[1])
     .on('click', (ev, t) => selectTrack(t))
     .on('keydown', (ev, t) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectTrack(t); } });
 
+  // Tracks with a recorded real outline (see data/track_shapes.json) are drawn
+  // as that shape, scaled to a common size - so Daytona's tri-oval, Darlington's
+  // egg, and Indianapolis's rectangle read as themselves, not interchangeable
+  // dots. Tracks with no recorded outline fall back to a diamond.
   pinGroups.each(function (t) {
-    const w = wScale(t.numRaces), h = w * hRatio;
-    d3.select(this).append('rect')
-      .attr('class', 'pin-mark')
-      .attr('width', w).attr('height', h)
-      .attr('x', -w / 2).attr('y', -h / 2)
-      .attr('rx', h / 2).attr('ry', h / 2);
+    const g = d3.select(this);
+    const size = sizeScale(t.numRaces);
+    const shape = trackShapes[t.name];
+    if (shape) {
+      const vb = parseViewBox(shape.viewBox);
+      const scale = size / Math.max(vb.w, vb.h);
+      const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+      g.append('g')
+        .attr('class', 'pin-shape')
+        .attr('transform', 'scale(' + scale + ') translate(' + -cx + ',' + -cy + ')')
+        .html(shape.markup);
+    } else {
+      g.append('rect')
+        .attr('class', 'pin-mark')
+        .attr('width', size).attr('height', size)
+        .attr('x', -size / 2).attr('y', -size / 2)
+        .attr('transform', 'rotate(45)');
+    }
   });
   pinGroups.append('title').text(t => t.name + ' (' + t.numRaces + (t.numRaces === 1 ? ' race)' : ' races)'));
   const pinLabels = pinGroups.append('text')
     .attr('class', 'pin-label')
-    .attr('x', t => wScale(t.numRaces) / 2 + 5)
+    .attr('x', t => sizeScale(t.numRaces) / 2 + 5)
     .attr('y', 3.5)
     .text(t => t.name);
 
