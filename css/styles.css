@@ -242,6 +242,101 @@ footer.site-footer { padding: 18px clamp(16px, 4vw, 32px) 32px; color: var(--mut
 .chart-toggle-btn:hover:not(.active) { color: var(--ink); }
 .chart-toggle-btn.active { background: var(--accent); color: var(--accent-ink); }
 
+/* ---------- 2026 season map: a dark "showroom floor" with every current
+   track extruded into a small spinning 3-D model, sized/tiered by how many
+   races it hosts this year. Fixed dark colors regardless of site theme,
+   matching the bonus track map's night-map treatment, since this is meant
+   to read as its own showcase, not a themed page component. ---------- */
+.season-map-section { padding: 36px 0; border-top: 1px solid var(--border); }
+.season-map-section .finding-num { color: var(--accent); font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.08em; }
+.season-map-section h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); margin-top: 4px; }
+.season-map-intro { max-width: 68ch; margin-top: 12px; color: var(--ink-2); line-height: 1.6; }
+
+.season-map-wrap {
+  position: relative; margin-top: 20px; border-radius: 16px; overflow: hidden;
+  background: #05060b; aspect-ratio: 975 / 610; box-shadow: var(--shadow);
+}
+#seasonMapSvg { width: 100%; height: 100%; display: block; position: relative; z-index: 1; }
+#seasonMapSvg .season-state {
+  fill: #0c1120; stroke: #1b2238; stroke-width: 0.6; cursor: pointer;
+  transform-box: fill-box; transform-origin: center;
+  transition: transform 0.32s cubic-bezier(.25,.9,.4,1.2), fill 0.15s;
+}
+#seasonMapSvg .season-state:hover { fill: #1b1018; }
+#seasonMapSvg .season-state.selected {
+  fill: #2a0a12; stroke: #ff3355; stroke-width: 1.6;
+  transform: translateY(-6px) scale(1.015);
+  filter: drop-shadow(0 10px 16px rgba(0,0,0,0.6));
+}
+#seasonMapSvg .season-state:focus { outline: none; }
+#seasonMapSvg .season-state:focus-visible { outline: 2px solid #ff3355; outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) {
+  #seasonMapSvg .season-state { transition: fill 0.15s; }
+  #seasonMapSvg .season-state.selected { transform: none; }
+}
+
+.season-map-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.season-track-anchor {
+  position: absolute; transform: translate(-50%, -50%);
+  pointer-events: auto; cursor: pointer; transition: opacity 0.3s;
+}
+.season-track-anchor:focus { outline: none; }
+.season-track-anchor:focus-visible .season-track-stage { outline: 2px solid #ff3355; outline-offset: 4px; border-radius: 50%; }
+.season-track-anchor.dimmed { opacity: 0.1; }
+.season-track-shadow {
+  position: absolute; left: 50%; top: 68%; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,0.6), transparent 72%);
+  transform: translate(-50%, -50%);
+}
+.season-track-stage {
+  position: relative; perspective: 420px;
+  transition: transform 0.3s cubic-bezier(.2,.8,.3,1.3);
+}
+.season-track-anchor:hover .season-track-stage,
+.season-track-anchor.selected .season-track-stage { transform: scale(1.4) translateY(-6px); }
+.season-track-rotor {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d; transform: rotateX(55deg) rotateZ(0deg);
+  animation-name: seasonTrackSpin; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+.season-track-anchor:hover .season-track-rotor,
+.season-track-anchor.selected .season-track-rotor { animation-play-state: paused; }
+@keyframes seasonTrackSpin { to { transform: rotateX(55deg) rotateZ(360deg); } }
+.season-track-layer {
+  position: absolute; left: 50%; top: 50%; display: block; overflow: visible;
+  transform: translate(-50%, -50%) translateZ(calc(var(--layer) * 2.2px));
+}
+.season-track-layer :is(path, polygon, ellipse, circle, rect, polyline) {
+  stroke: rgba(0,0,0,0.35); stroke-width: 1px; vector-effect: non-scaling-stroke;
+}
+@media (prefers-reduced-motion: reduce) {
+  .season-track-rotor { animation: none; }
+  .season-track-anchor:hover .season-track-stage, .season-track-anchor.selected .season-track-stage { transform: scale(1.25); }
+}
+
+.season-map-tooltip {
+  position: absolute; z-index: 20; pointer-events: none;
+  background: rgba(10,13,24,0.95); border: 1px solid #ff3355; border-radius: 10px;
+  padding: 8px 12px; font-size: 0.78rem; color: #f3efe4; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  transform: translate(-50%, calc(-100% - 20px)); white-space: nowrap;
+}
+.season-map-tooltip .tt-name { font-weight: 800; font-family: "Big Shoulders Display", sans-serif; display: block; }
+.season-map-tooltip .tt-races { color: #c7c4ba; display: block; margin-top: 2px; font-size: 0.72rem; }
+
+.season-map-banner {
+  position: absolute; left: 14px; bottom: 14px; z-index: 15;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(10,13,24,0.92); border: 1px solid #ff3355; border-radius: 10px;
+  padding: 8px 12px; font-size: 0.78rem; color: #f3efe4; font-weight: 700;
+}
+.season-map-banner button {
+  border: none; background: #ff3355; color: #fff; font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em; padding: 5px 9px; border-radius: 6px; cursor: pointer;
+}
+@media (max-width: 640px) {
+  .season-map-banner { left: 8px; bottom: 8px; right: 8px; }
+}
+
 .closing-section { margin-top: 20px; padding-top: 32px; border-top: 1px solid var(--border); }
 .closing-section h2 { font-size: 1.6rem; }
 .closing-section .closing-body { max-width: 72ch; margin-top: 14px; }

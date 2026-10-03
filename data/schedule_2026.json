@@ -1,0 +1,33 @@
+{
+  "note": "The 2026 NASCAR Cup Series schedule - 36 points races plus 2 exhibitions (the Clash and the All-Star Race) - hand-collected since the season is in progress and race_results.csv deliberately stops at 2025. Track names match data/tracks.json / data/track_shapes.json where the track already exists in this project's historical data; Circuit of the Americas has no recorded outline in track_shapes.json, and the Coronado Street Course is brand new for 2026 (first Cup race there ever) so it has neither prior coordinates nor an outline.",
+  "tracks": [
+    { "name": "Bowman Gray Stadium", "races": [{ "race": "Cook Out Clash", "exhibition": true }] },
+    { "name": "Daytona International Speedway", "races": [{ "race": "Daytona 500" }, { "race": "Coke Zero Sugar 400" }] },
+    { "name": "Atlanta Motor Speedway", "races": [{ "race": "Autotrader 400" }, { "race": "Quaker State 400" }] },
+    { "name": "Circuit of the Americas", "races": [{ "race": "DuraMAX Texas Grand Prix" }] },
+    { "name": "Phoenix Raceway", "races": [{ "race": "Straight Talk Wireless 500" }, { "race": "Freeway Insurance 500" }] },
+    { "name": "Las Vegas Motor Speedway", "races": [{ "race": "Pennzoil 400" }, { "race": "South Point 400" }] },
+    { "name": "Darlington Raceway", "races": [{ "race": "Goodyear 400" }, { "race": "Cook Out Southern 500" }] },
+    { "name": "Martinsville Speedway", "races": [{ "race": "Cook Out 400" }, { "race": "Xfinity 500" }] },
+    { "name": "Bristol Motor Speedway", "races": [{ "race": "Food City 500" }, { "race": "Bass Pro Shops Night Race" }] },
+    { "name": "Kansas Speedway", "races": [{ "race": "AdventHealth 400" }, { "race": "Hollywood Casino 400" }] },
+    { "name": "Talladega Superspeedway", "races": [{ "race": "Jack Link's 500" }, { "race": "YellaWood 500" }] },
+    { "name": "Texas Motor Speedway", "races": [{ "race": "Würth 400" }] },
+    { "name": "Watkins Glen International", "races": [{ "race": "Go Bowling at The Glen" }] },
+    { "name": "Dover Motor Speedway", "races": [{ "race": "NASCAR All-Star Race", "exhibition": true }] },
+    { "name": "Charlotte Motor Speedway", "races": [{ "race": "Coca-Cola 600" }] },
+    { "name": "Nashville Superspeedway", "races": [{ "race": "Cracker Barrel 400" }] },
+    { "name": "Michigan International Speedway", "races": [{ "race": "FireKeepers Casino 400" }] },
+    { "name": "Pocono Raceway", "races": [{ "race": "The Great American Getaway 400" }] },
+    { "name": "Coronado Street Course", "races": [{ "race": "Anduril 250" }], "lat": 32.6859, "lon": -117.1831, "isNew": true },
+    { "name": "Sonoma Raceway", "races": [{ "race": "Toyota/Save Mart 350" }] },
+    { "name": "Chicagoland Speedway", "races": [{ "race": "eero 400" }] },
+    { "name": "North Wilkesboro Speedway", "races": [{ "race": "Window World 450" }] },
+    { "name": "Indianapolis Motor Speedway", "races": [{ "race": "Brickyard 400" }] },
+    { "name": "Iowa Speedway", "races": [{ "race": "Iowa Corn 350" }] },
+    { "name": "Richmond Raceway", "races": [{ "race": "Cook Out 400" }] },
+    { "name": "New Hampshire Motor Speedway", "races": [{ "race": "Dollar Tree 301" }] },
+    { "name": "World Wide Technology Raceway at Gateway", "races": [{ "race": "Enjoy Illinois 300" }] },
+    { "name": "Homestead-Miami Speedway", "races": [{ "race": "Straight Talk Wireless 400" }] }
+  ]
+}

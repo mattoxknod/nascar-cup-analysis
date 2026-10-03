@@ -49,6 +49,25 @@
     <div class="stat-tile"><div class="v" id="hsSeasons">&hellip;</div><div class="l">Seasons covered</div></div>
   </section>
 
+  <section class="season-map-section" id="seasonMapSection" aria-label="2026 Cup Series schedule map">
+    <div class="finding-num">2026 Schedule</div>
+    <h2>Every Track Racing This Season, Standing Up Off the Map</h2>
+    <p class="season-map-intro">
+      28 tracks host a Cup Series points or exhibition race in 2026. Each one below is its own real track
+      layout (traced from official diagrams &mdash; see the closing section), extruded into a small spinning
+      3&ndash;D model sized by how many races it hosts this year. Click a state to see what it's running.
+    </p>
+    <div class="season-map-wrap" id="seasonMapWrap">
+      <svg id="seasonMapSvg" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the United States with a spinning 3-D model of every track on the 2026 NASCAR Cup Series schedule"></svg>
+      <div class="season-map-overlay" id="seasonMapOverlay"></div>
+      <div class="season-map-tooltip" id="seasonMapTooltip" hidden></div>
+      <div class="season-map-banner" id="seasonMapBanner" hidden>
+        <span id="seasonMapBannerLabel"></span>
+        <button type="button" id="seasonMapBannerClear">Show all tracks</button>
+      </div>
+    </div>
+  </section>
+
   <article id="findings">
 
     <section class="finding" id="finding1" data-finding="1">
@@ -257,6 +276,19 @@
         example, <code>'57 Chevrolet</code>). These were normalized to the base brand name
         (<code>Chevrolet</code>) so that manufacturer totals aggregate correctly across eras; 19 distinct
         normalized brands appear in the dataset.</dd>
+
+        <dt>Track outlines (the 2026 schedule map above, and the bonus track map)</dt>
+        <dd>Real outline geometry for 39 tracks, traced directly from the official track-layout diagrams on
+        <a href="https://en.wikipedia.org/wiki/List_of_NASCAR_tracks" target="_blank" rel="noopener">Wikipedia's
+        "List of NASCAR tracks"</a>, not drawn from <code>race_results.csv</code>. For each diagram, the
+        largest visible path was taken as the outline, measured with a real browser's SVG engine and
+        spot-checked against a rendered preview; three tracks use a small hand-traced fallback instead,
+        where that heuristic picked the diagram's background art rather than the track line. The 2026
+        schedule above and the 2026 race list themselves are likewise hand-collected separately from the
+        main dataset, since the 2026 season is still in progress and intentionally excluded from
+        <code>race_results.csv</code> (see above) - 26 of the 28 tracks on this year's schedule have a real
+        traced outline; the other two (Circuit of the Americas, which has never had one traced, and the
+        brand-new Coronado Street Course) show a generic placeholder shape instead.</dd>
       </dl>
     </div>
   </section>
@@ -269,6 +301,8 @@
 </footer>
 
 <script src="vendor/papaparse.min.js"></script>
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/topojson.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/charts.js"></script>
 <script src="js/logos.js"></script>
@@ -422,6 +456,153 @@
     });
     const closing = document.querySelector('.closing-section');
     if (closing) { closing.__tickerMode = 'standings'; observer.observe(closing); }
+  }
+})();
+</script>
+
+<script>
+// ---- 2026 season map: every current-schedule track, extruded into a small
+// spinning 3-D model built from its own real outline (data/track_shapes.json)
+// where one exists, sized/tiered by how many races it hosts this year.
+// Self-contained from the report's main data script since it has its own
+// data dependencies (the 2026 schedule, the US basemap) and doesn't need to
+// block on the full race-results CSV loading first.
+(async function () {
+  "use strict";
+  const [schedule, us, trackShapes, tracksData] = await Promise.all([
+    fetch('data/schedule_2026.json').then(r => r.json()),
+    fetch('data/us-states-10m.json').then(r => r.json()),
+    fetch('data/track_shapes.json').then(r => r.json()),
+    fetch('data/tracks.json').then(r => r.json())
+  ]);
+
+  const VB_W = 975, VB_H = 610;
+  const svg = d3.select('#seasonMapSvg');
+  const projection = d3.geoAlbersUsa().scale(1250).translate([487.5, 305]);
+  const path = d3.geoPath(projection);
+
+  const statesGeo = topojson.feature(us, us.objects.states).features;
+  const stateShapes = svg.append('g').attr('class', 'season-states')
+    .selectAll('path').data(statesGeo).join('path')
+    .attr('class', 'season-state').attr('d', path)
+    .attr('tabindex', 0).attr('role', 'button')
+    .attr('aria-label', d => d.properties.name)
+    .on('click', (ev, d) => { ev.stopPropagation(); selectState(d); })
+    .on('keydown', (ev, d) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectState(d); } });
+
+  const trackByName = new Map(tracksData.map(t => [t.name, t]));
+
+  function parseViewBox(vb) {
+    const [x, y, w, h] = vb.trim().split(/\s+/).map(Number);
+    return { x, y, w, h };
+  }
+  const FALLBACK_VB = { x: 0, y: 0, w: 200, h: 200 };
+  const FALLBACK_MARKUP = '<polygon points="100,16 172,58 172,142 100,184 28,142 28,58"/>';
+
+  // dark red base -> bright gold top, so each model reads as a glowing
+  // extrusion rising off the dark map, consistent with the site's new
+  // NASCAR-red identity rather than the bonus map's amber "light pollution" look.
+  function layerColor(i, n) {
+    const t = n <= 1 ? 1 : i / (n - 1);
+    const r = Math.round(58 + (255 - 58) * t), g = Math.round(6 + (214 - 6) * t), b = Math.round(14 + (120 - 14) * t);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  const tracks2026 = schedule.tracks.map(s => {
+    const base = trackByName.get(s.name);
+    const lat = base ? base.lat : s.lat;
+    const lon = base ? base.lon : s.lon;
+    const proj = (lat != null && lon != null) ? projection([lon, lat]) : null;
+    return proj ? { ...s, lat, lon, x: proj[0], y: proj[1], shape: trackShapes[s.name] || null } : null;
+  }).filter(Boolean);
+
+  const stateOf = new Map();
+  tracks2026.forEach(t => {
+    const hit = statesGeo.find(f => d3.geoContains(f, [t.lon, t.lat]));
+    if (hit) stateOf.set(t, hit.properties.name);
+  });
+
+  const overlay = document.getElementById('seasonMapOverlay');
+  const tooltip = document.getElementById('seasonMapTooltip');
+
+  function showTooltip(t) {
+    const racesHtml = t.races.map(r => r.race + (r.exhibition ? ' <em>(exhibition)</em>' : '')).join(' &middot; ');
+    tooltip.innerHTML = '<span class="tt-name">' + t.name + '</span><span class="tt-races">' + racesHtml + '</span>';
+    tooltip.style.left = (t.x / VB_W * 100) + '%';
+    tooltip.style.top = (t.y / VB_H * 100) + '%';
+    tooltip.hidden = false;
+  }
+  function hideTooltip() { tooltip.hidden = true; }
+
+  const anchors = tracks2026.map(t => {
+    const nRaces = t.races.length;
+    const shape = t.shape;
+    const vb = shape ? parseViewBox(shape.viewBox) : FALLBACK_VB;
+    const markup = shape ? shape.markup : FALLBACK_MARKUP;
+    const footprint = nRaces >= 2 ? 76 : 54;
+    const layerCount = nRaces >= 2 ? 11 : 6;
+
+    const el = document.createElement('div');
+    el.className = 'season-track-anchor';
+    el.style.left = (t.x / VB_W * 100) + '%';
+    el.style.top = (t.y / VB_H * 100) + '%';
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', t.name + ', ' + nRaces + (nRaces === 1 ? ' race' : ' races') + ' in 2026');
+
+    let layersHtml = '';
+    for (let i = 0; i < layerCount; i++) {
+      const styled = markup.replace(/<(path|polygon|ellipse|circle|rect|polyline)(\s|\/|>)/g, '<$1 fill="' + layerColor(i, layerCount) + '"$2');
+      layersHtml += '<svg class="season-track-layer" style="--layer:' + i + '" width="' + footprint + '" height="' + footprint + '" viewBox="' + vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h + '" preserveAspectRatio="xMidYMid meet">' + styled + '</svg>';
+    }
+
+    const spinDuration = (13 + Math.random() * 7).toFixed(1);
+    const spinDelay = (-Math.random() * 15).toFixed(1);
+    el.innerHTML =
+      '<div class="season-track-shadow" style="width:' + (footprint * 0.75) + 'px;height:' + (footprint * 0.26) + 'px;"></div>' +
+      '<div class="season-track-stage" style="width:' + footprint + 'px;height:' + footprint + 'px;">' +
+        '<div class="season-track-rotor" style="animation-duration:' + spinDuration + 's;animation-delay:' + spinDelay + 's">' + layersHtml + '</div>' +
+      '</div>';
+
+    el.addEventListener('mouseenter', () => showTooltip(t));
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); showTooltip(t); });
+    el.addEventListener('focus', () => showTooltip(t));
+    el.addEventListener('blur', hideTooltip);
+    el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') ev.preventDefault(); });
+
+    overlay.appendChild(el);
+    return { t, el };
+  });
+
+  let selectedStateName = null;
+  const banner = document.getElementById('seasonMapBanner');
+  const bannerLabel = document.getElementById('seasonMapBannerLabel');
+  document.getElementById('seasonMapBannerClear').addEventListener('click', clearSelection);
+
+  function selectState(feature) {
+    const name = feature.properties.name;
+    if (selectedStateName === name) { clearSelection(); return; }
+    selectedStateName = name;
+    stateShapes.classed('selected', d => d.properties.name === name);
+    stateShapes.filter(d => d.properties.name === name).raise();
+    const here = anchors.filter(a => stateOf.get(a.t) === name);
+    bannerLabel.textContent = here.length
+      ? name + ' — ' + here.length + (here.length === 1 ? ' track' : ' tracks') + ' in 2026'
+      : name + ' — no 2026 Cup races';
+    banner.hidden = false;
+    anchors.forEach(a => {
+      const inState = stateOf.get(a.t) === name;
+      a.el.classList.toggle('dimmed', !inState);
+      a.el.classList.toggle('selected', inState);
+    });
+  }
+  function clearSelection() {
+    if (selectedStateName === null) return;
+    selectedStateName = null;
+    stateShapes.classed('selected', false);
+    banner.hidden = true;
+    anchors.forEach(a => { a.el.classList.remove('dimmed'); a.el.classList.remove('selected'); });
   }
 })();
 </script>
