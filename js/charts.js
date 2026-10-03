@@ -75,5 +75,31 @@ window.NASCARCharts = (function () {
       gridSvg + xAxisSvg + linesSvg + '</svg>' + legend;
   }
 
-  return { renderBarList, renderLineChart };
+  // points: [{x,y}], opts: {width,height,color}. A minimal trend line with
+  // no axes/grid/labels - meant to sit inline inside a small space (a stat
+  // tile, say) just to show shape-of-trend, not read exact values from.
+  function renderSparkline(el, points, opts) {
+    opts = opts || {};
+    const w = opts.width || el.clientWidth || 120;
+    const h = opts.height || 32;
+    const pad = 3;
+    if (points.length < 2) { el.innerHTML = ''; return; }
+    const pts = points.slice().sort((a, b) => a.x - b.x);
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const xScale = x => pad + (x1 === x0 ? 0 : (x - x0) / (x1 - x0)) * (w - pad * 2);
+    const yScale = y => h - pad - (y1 === y0 ? 0.5 : (y - y0) / (y1 - y0)) * (h - pad * 2);
+    const color = opts.color || 'var(--accent)';
+    const linePath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + xScale(p.x) + ',' + yScale(p.y)).join(' ');
+    const areaPath = linePath + ' L' + xScale(xs[xs.length - 1]) + ',' + (h - pad) + ' L' + xScale(xs[0]) + ',' + (h - pad) + ' Z';
+    const last = pts[pts.length - 1];
+    el.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" class="sparkline-svg" preserveAspectRatio="none">' +
+      '<path d="' + areaPath + '" class="sparkline-area" fill="' + color + '"/>' +
+      '<path d="' + linePath + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + xScale(last.x) + '" cy="' + yScale(last.y) + '" r="2.2" fill="' + color + '"/>' +
+      '</svg>';
+  }
+
+  return { renderBarList, renderLineChart, renderSparkline };
 })();

@@ -257,20 +257,37 @@
     C.renderBarList(chartEl, data, { fmt: fmtForMeasure(measureKey), iconFn });
   }
 
-  // ---- summary tiles ----
+  // ---- summary tiles, each with a small by-season sparkline of its own
+  // measure across whatever years are currently in view, so the headline
+  // number isn't just a static total - you can see its shape at a glance.
+  // Single pass grouping by year (not one .filter() per year per stat), so
+  // this stays fast even across the full 100k+ row dataset. ----
   function renderStats(filteredRows) {
+    const byYear = new Map();
+    for (const r of filteredRows) {
+      if (!byYear.has(r.year)) byYear.set(r.year, []);
+      byYear.get(r.year).push(r);
+    }
+    const sparkYears = [...byYear.keys()].sort((a, b) => a - b);
+    function spark(fn) {
+      return sparkYears.map(y => ({ x: y, y: fn(byYear.get(y)) })).filter(p => p.y !== null && p.y !== undefined && !Number.isNaN(p.y));
+    }
+
     const raceIds = new Set(filteredRows.map(r => r.year + '-' + r.raceNum));
     const w = filteredRows.filter(r => r.finishPos === 1).length;
     const stats = [
-      [N.fmtNum(filteredRows.length, 0), 'Entries in view'],
-      [N.fmtNum(raceIds.size, 0), 'Distinct races'],
-      [N.fmtNum(w, 0), 'Wins in view'],
-      [N.fmtNum(N.mean(filteredRows.map(r => r.finishPos)), 1), 'Average finish'],
-      [N.fmtMoney(N.sum(filteredRows.map(r => r.money))), 'Total winnings in view']
+      [N.fmtNum(filteredRows.length, 0), 'Entries in view', spark(g => g.length)],
+      [N.fmtNum(raceIds.size, 0), 'Distinct races', spark(g => new Set(g.map(r => r.year + '-' + r.raceNum)).size)],
+      [N.fmtNum(w, 0), 'Wins in view', spark(g => g.filter(r => r.finishPos === 1).length)],
+      [N.fmtNum(N.mean(filteredRows.map(r => r.finishPos)), 1), 'Average finish', spark(g => N.mean(g.map(r => r.finishPos)))],
+      [N.fmtMoney(N.sum(filteredRows.map(r => r.money))), 'Total winnings in view', spark(g => N.sum(g.map(r => r.money)) || null)]
     ];
-    document.getElementById('dashStats').innerHTML = stats.map(([v, l]) =>
-      '<div class="stat-tile"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>'
+    document.getElementById('dashStats').innerHTML = stats.map(([v, l], i) =>
+      '<div class="stat-tile"><div class="v">' + v + '</div><div class="l">' + l + '</div><div class="spark" id="dashSpark' + i + '"></div></div>'
     ).join('');
+    stats.forEach(([, , pts], i) => {
+      if (pts.length >= 2) C.renderSparkline(document.getElementById('dashSpark' + i), pts);
+    });
   }
 
   // ---- data table ----

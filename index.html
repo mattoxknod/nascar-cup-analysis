@@ -133,9 +133,19 @@
         records every finish, but prize money is only a reliable number for races run in 1972&ndash;2015.
         Any "total winnings" figure in this report or the dashboard should be read as covering that window
         only, never the full 77 seasons.</p>
+        <p>One race keeps a number going past that point: the Daytona 500, as the season-opening marquee
+        event, still gets a total-purse figure reported in most years even when no other race does &mdash;
+        $18 million in 2016 climbing to a record $31.0 million for 2026. "Most" is not "all": 2017 and 2021
+        genuinely have no reliable figure published anywhere and are left blank below rather than guessed,
+        and a few other years (marked in the toggle) are widely-reported estimates rather than numbers
+        NASCAR itself confirmed.</p>
+      </div>
+      <div class="chart-toggle" role="group" aria-label="Chart view" id="chart5Toggle">
+        <button type="button" class="chart-toggle-btn active" data-view="all">All races</button>
+        <button type="button" class="chart-toggle-btn" data-view="daytona500">Daytona 500 only</button>
       </div>
       <div class="chart-box"><div id="chart5"></div></div>
-      <p class="chart-caption">Total reported driver winnings by year, summed across every entrant, 1972&ndash;2015.</p>
+      <p class="chart-caption" id="chart5Caption">Total reported driver winnings by year, summed across every entrant, 1972&ndash;2015.</p>
     </section>
 
     <section class="finding" id="finding6" data-finding="6">
@@ -265,7 +275,10 @@
 <script>
 (async function () {
   "use strict";
-  const rows = await window.NASCAR.loadData();
+  const [rows, daytonaExtra] = await Promise.all([
+    window.NASCAR.loadData(),
+    fetch('data/daytona500_purse_2016_2026.json').then(r => r.json())
+  ]);
   const N = window.NASCAR;
   const C = window.NASCARCharts;
   const L = window.NASCARLogos;
@@ -280,7 +293,7 @@
   document.getElementById('hsSeasons').textContent = (Math.max(...rows.map(r=>r.year)) - Math.min(...rows.map(r=>r.year)) + 1);
 
   // ---- Finding 1: top drivers by wins ----
-  C.renderBarList(document.getElementById('chart1'), N.aggregate(rows, 'driver', 'wins', { limit: 10 }), { fmt: v => v, color: 'var(--accent)' });
+  C.renderBarList(document.getElementById('chart1'), N.aggregate(rows, 'driver', 'wins', { limit: 10 }), { fmt: v => v, color: 'var(--accent)', iconFn: L.driverNumberBadge });
 
   // ---- Finding 2: manufacturer wins by decade, top 5 brands, multi-line ----
   const CAT = ['var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)', 'var(--cat-5)'];
@@ -301,10 +314,43 @@
   }).filter(p => p.y !== null);
   C.renderLineChart(document.getElementById('chart4'), [{ name: 'Avg winning speed', color: 'var(--accent)', points: speedPts }], { yFmt: v => Math.round(v) + ' mph', xFmt: decadeLabel });
 
-  // ---- Finding 5: total winnings by year ----
+  // ---- Finding 5: total winnings by year, with a toggle to Daytona 500 only ----
   const years = [...new Set(rows.map(r => r.year))].sort((a, b) => a - b);
   const moneyPts = years.map(y => ({ x: y, y: N.sum(rows.filter(r => r.year === y).map(r => r.money)) })).filter(p => p.y > 0);
-  C.renderLineChart(document.getElementById('chart5'), [{ name: 'Total winnings', color: 'var(--accent)', points: moneyPts }], { yFmt: v => '$' + Math.round(v / 1e6) + 'M', xFmt: v => v });
+
+  // The Daytona 500 specifically (not the summer Daytona race, and not the
+  // old 100/125-mile qualifying races that used to count as separate points
+  // races) is the one 500-mile points race run at "Daytona" each February -
+  // raceMiles === 500 isolates it cleanly across all 67 runnings. 1972-2015
+  // comes straight from this site's own racing-reference.info data, same as
+  // the all-races line above; 2016 on is hand-collected (see the JSON file's
+  // own note) since NASCAR itself stopped publishing full purses that year.
+  const daytonaRows = rows.filter(r => r.track === 'Daytona' && r.raceMiles === 500);
+  const daytonaInDatasetPts = [...new Set(daytonaRows.map(r => r.year))].sort((a, b) => a - b)
+    .map(y => ({ x: y, y: N.sum(daytonaRows.filter(r => r.year === y).map(r => r.money)) }))
+    .filter(p => p.y > 0);
+  const daytonaExtraPts = daytonaExtra.years.filter(y => y.total !== null).map(y => ({ x: y.year, y: y.total }));
+  const daytona500Pts = daytonaInDatasetPts.concat(daytonaExtraPts).sort((a, b) => a.x - b.x);
+  const daytonaLastYear = daytona500Pts[daytona500Pts.length - 1].x;
+
+  const chart5Caption = document.getElementById('chart5Caption');
+  function renderChart5(view) {
+    if (view === 'daytona500') {
+      C.renderLineChart(document.getElementById('chart5'), [{ name: 'Daytona 500 purse', color: 'var(--accent)', points: daytona500Pts }], { yFmt: v => '$' + Math.round(v / 1e6) + 'M', xFmt: v => v });
+      chart5Caption.textContent = 'Daytona 500 total purse by year, 1959–' + daytonaLastYear + ' (1972–2015 from this report’s own dataset, 2016 on hand-collected - 2017 and 2021 have no reliable published figure and are left blank).';
+    } else {
+      C.renderLineChart(document.getElementById('chart5'), [{ name: 'Total winnings', color: 'var(--accent)', points: moneyPts }], { yFmt: v => '$' + Math.round(v / 1e6) + 'M', xFmt: v => v });
+      chart5Caption.textContent = 'Total reported driver winnings by year, summed across every entrant, 1972–2015.';
+    }
+  }
+  document.querySelectorAll('#chart5Toggle .chart-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#chart5Toggle .chart-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderChart5(btn.dataset.view);
+    });
+  });
+  renderChart5('all');
 
   // ---- Finding 6: top tracks by races hosted ----
   C.renderBarList(document.getElementById('chart6'), N.aggregate(wins, 'track', 'count', { limit: 15 }), { fmt: v => v, color: 'var(--accent)' });
@@ -332,7 +378,7 @@
   const T = window.NASCARTicker;
   if (T && 'IntersectionObserver' in window) {
     const top40Drivers = N.aggregate(rows, 'driver', 'wins', { limit: 40 })
-      .map(d => ({ name: d.name, value: d.value + (d.value === 1 ? ' win' : ' wins') }));
+      .map(d => ({ name: d.name, value: d.value + (d.value === 1 ? ' win' : ' wins'), icon: L.driverNumberBadge(d.name) }));
     const top20Owners = N.aggregate(rows, 'owner', 'wins', { limit: 20 })
       .map(d => ({ name: d.name, value: d.value + (d.value === 1 ? ' win' : ' wins'), icon: L.teamLogo(d.name) }));
     const mfrByDecade = decades.map(d => {

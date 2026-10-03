@@ -1,0 +1,16 @@
+{
+  "note": "Total Daytona 500 purse by year, 2016-2026. NASCAR stopped publicly disclosing full race purses after the 2015 season (the charter system made team payouts private), so this is NOT from racing-reference.info like the rest of this site's data - it's hand-collected from NASCAR-beat reporting, since the Daytona 500 specifically (as the season-opening marquee race) still gets a total-purse figure reported most years, even when no other race does. 2017 and 2021 could not be found from any reasonably reliable source and are left out rather than guessed. Figures are in whole dollars.",
+  "years": [
+    { "year": 2016, "total": 18000000, "confidence": "reported", "source": "Multiple outlets reported the total purse exceeded $18 million; not an official NASCAR figure." },
+    { "year": 2017, "total": null, "confidence": "unavailable", "source": "No reliable total-purse figure found for this year." },
+    { "year": 2018, "total": 15470000, "confidence": "official", "source": "Disclosed in a 2018 BK Racing bankruptcy court filing." },
+    { "year": 2019, "total": 19000000, "confidence": "reported", "source": "Widely reported estimate; not an official NASCAR disclosure." },
+    { "year": 2020, "total": 23600000, "confidence": "official", "source": "NASCAR/ESPN reported this as the largest purse in American motorsports history at the time." },
+    { "year": 2021, "total": null, "confidence": "unavailable", "source": "No reliable total-purse figure found for this year." },
+    { "year": 2022, "total": 24600000, "confidence": "reported", "source": "Widely reported figure." },
+    { "year": 2023, "total": 26934357, "confidence": "official", "source": "NASCAR resumed official purse disclosure starting this year." },
+    { "year": 2024, "total": 28035991, "confidence": "official", "source": "Official NASCAR figure." },
+    { "year": 2025, "total": 30331250, "confidence": "official", "source": "Official NASCAR figure, a new record at the time." },
+    { "year": 2026, "total": 31045575, "confidence": "official", "source": "Official NASCAR figure, the largest in the race's 67-year history." }
+  ]
+}
